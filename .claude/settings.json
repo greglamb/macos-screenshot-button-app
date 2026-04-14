@@ -1,0 +1,5 @@
+{
+  "enabledPlugins": {
+    "swift-dev@claude-gcode-tools": true
+  }
+}
