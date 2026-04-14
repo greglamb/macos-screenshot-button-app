@@ -1,0 +1,5 @@
+title = "Gitleaks config"
+
+[allowlist]
+  description = "Allowlisted patterns"
+  paths = []
