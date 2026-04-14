@@ -1,0 +1,2637 @@
+# ScreenshotButton Initial Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Ship v1 of ScreenshotButton — a macOS 14+ menu-bar utility that captures windows or drawn areas to a PNG file (opened in Preview) or the system clipboard, installable via a signed/notarized Homebrew cask hosted in this repo.
+
+**Architecture:** SwiftUI `MenuBarExtra` drives a capture session that renders per-`NSScreen` borderless `NSPanel` overlays. `ScreenCaptureKit` provides pixels; a sink routes results to a temp-file-opened-in-Preview or to `NSPasteboard`. All Apple APIs (SCK, AppKit, `SMAppService`, `NSWorkspace`) are wrapped behind narrow protocols so business logic is fully unit-testable with Swift Testing. Release is driven by two GitHub Actions workflows that sign, notarize, and rewrite the pinned-SHA cask per the house conventions in `_gitignored/macos-app-release-conventions.md`.
+
+**Tech Stack:** Swift 6, SwiftUI (`@Observable`), AppKit (`NSPanel`, `NSEvent`), ScreenCaptureKit, `SMAppService`, Swift Testing, `xcodebuild`, GitHub Actions, Homebrew cask.
+
+**Reference:** design spec at `docs/superpowers/specs/2026-04-14-screenshotbutton-design.md`.
+
+**Conventions:**
+- Swift Testing (`@Test`, `#expect`) — not XCTest
+- Strict Red-Green-Refactor per task, one commit per passing task
+- Conventional commit messages enforced by hook
+- Every Apple-API touchpoint is wrapped behind a protocol before a real call is made
+- `xcodebuild` CLI in this plan; `xcodebuildmcp` is equivalent locally but the raw tool is used here so commands are stable across environments
+
+**Test command template** (used throughout):
+
+```bash
+xcodebuild test \
+  -project ScreenshotButton.xcodeproj \
+  -scheme ScreenshotButton \
+  -destination 'platform=macOS' \
+  -only-testing:ScreenshotButtonTests/<TestTypeOrFile> \
+  CODE_SIGN_IDENTITY="-" \
+  CODE_SIGNING_REQUIRED=NO \
+  -quiet
+```
+
+Replace `<TestTypeOrFile>` with the filename (minus `.swift`) or leave the flag off to run all tests.
+
+---
+
+## Task 1: Create Xcode project scaffold
+
+**Files:**
+- Create: `ScreenshotButton.xcodeproj/` (Xcode generates)
+- Create: `ScreenshotButton/ScreenshotButtonApp.swift`
+- Create: `ScreenshotButtonTests/SmokeTests.swift`
+
+This task is manual because `.xcodeproj` files aren't meaningfully authorable by hand. Follow the exact settings — later tasks rely on them.
+
+- [ ] **Step 1: Create the project in Xcode**
+
+Open Xcode → File → New → Project → **macOS → App**. Settings:
+
+| Field | Value |
+|---|---|
+| Product Name | `ScreenshotButton` |
+| Team | (your dev team) |
+| Organization Identifier | `dev.greglamb` |
+| Bundle Identifier | `dev.greglamb.ScreenshotButton` (auto-filled) |
+| Interface | SwiftUI |
+| Language | Swift |
+| Testing System | **Swift Testing** (important — not XCTest) |
+| Storage | None |
+| Include Tests | ✅ |
+
+Save the project at the repo root. The resulting layout:
+
+```
+ScreenshotButton.xcodeproj/
+ScreenshotButton/
+  ScreenshotButtonApp.swift
+  ContentView.swift
+  Assets.xcassets/
+ScreenshotButtonTests/
+  ScreenshotButtonTests.swift
+```
+
+- [ ] **Step 2: Delete `ContentView.swift` and rewrite `ScreenshotButtonApp.swift`**
+
+We don't need a main window. Replace `ScreenshotButtonApp.swift` contents with:
+
+```swift
+import SwiftUI
+
+@main
+struct ScreenshotButtonApp: App {
+    var body: some Scene {
+        // Placeholder — task 20 replaces this with MenuBarExtra.
+        Settings {
+            EmptyView()
+        }
+    }
+}
+```
+
+Delete `ContentView.swift` from the project (right-click → Delete → Move to Trash).
+
+- [ ] **Step 3: Rename the default test file and write a smoke test**
+
+Rename `ScreenshotButtonTests/ScreenshotButtonTests.swift` to `ScreenshotButtonTests/SmokeTests.swift`. Replace contents:
+
+```swift
+import Testing
+@testable import ScreenshotButton
+
+@Test func projectBuildsAndTestsRun() {
+    #expect(true)
+}
+```
+
+- [ ] **Step 4: Set Swift 6 and macOS 14 deployment target**
+
+In the Xcode project editor:
+- ScreenshotButton target → Build Settings → Swift Language Version → **Swift 6**
+- ScreenshotButton target → General → Minimum Deployments → macOS **14.0**
+- ScreenshotButtonTests target → Minimum Deployments → macOS **14.0**
+- ScreenshotButton target → Signing & Capabilities → App Sandbox: **remove the capability entirely** if present (we are unsandboxed).
+
+- [ ] **Step 5: Build and run the smoke test from CLI**
+
+Run:
+```bash
+xcodebuild test \
+  -project ScreenshotButton.xcodeproj \
+  -scheme ScreenshotButton \
+  -destination 'platform=macOS' \
+  CODE_SIGN_IDENTITY="-" \
+  CODE_SIGNING_REQUIRED=NO \
+  -quiet
+```
+Expected: `** TEST SUCCEEDED **`. If it fails with signing errors, the `CODE_SIGN_IDENTITY="-"` line is missing.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add ScreenshotButton.xcodeproj ScreenshotButton ScreenshotButtonTests
+git commit -m "feat: scaffold Xcode project with Swift Testing"
+```
+
+---
+
+## Task 2: Info.plist — LSUIElement, screen recording usage, min version
+
+**Files:**
+- Modify: `ScreenshotButton/Info.plist` (auto-generated — edit via Xcode target editor)
+
+- [ ] **Step 1: Add Info.plist entries**
+
+In Xcode → ScreenshotButton target → Info tab, add these rows:
+
+| Key | Type | Value |
+|---|---|---|
+| `Application is agent (UIElement)` (`LSUIElement`) | Boolean | `YES` |
+| `Privacy - Screen Capture Usage Description` (`NSScreenCaptureUsageDescription`) | String | `ScreenshotButton needs screen recording access to capture windows and regions.` |
+
+`LSMinimumSystemVersion` is already set from Task 1 step 4.
+
+- [ ] **Step 2: Verify `LSUIElement` takes effect**
+
+Run the app from Xcode. Expected: no Dock icon appears, no app menu bar appears. The app just sits in the process list. Quit via Xcode's stop button.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add ScreenshotButton.xcodeproj
+git commit -m "feat: set LSUIElement and screen recording usage string"
+```
+
+---
+
+## Task 3: CI — build.yml
+
+**Files:**
+- Create: `.github/workflows/build.yml`
+
+- [ ] **Step 1: Write `.github/workflows/build.yml`**
+
+```yaml
+name: Build & Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Build
+        run: |
+          xcodebuild \
+            -project ScreenshotButton.xcodeproj \
+            -scheme ScreenshotButton \
+            -configuration Debug \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Run Tests
+        run: |
+          xcodebuild \
+            -project ScreenshotButton.xcodeproj \
+            -scheme ScreenshotButton \
+            -configuration Debug \
+            -derivedDataPath build \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            test
+
+      - name: Verify app bundle
+        run: |
+          APP_PATH="build/Build/Products/Debug/ScreenshotButton.app"
+          test -d "$APP_PATH" || { echo "App bundle not found"; exit 1; }
+```
+
+- [ ] **Step 2: Commit and verify on push**
+
+```bash
+git add .github/workflows/build.yml
+git commit -m "ci: add build and test workflow"
+```
+
+Push the branch when ready; confirm the Actions run goes green before proceeding.
+
+---
+
+## Task 4: Core enums — `CaptureMode` and `SinkKind`
+
+**Files:**
+- Create: `ScreenshotButton/Core/CaptureMode.swift`
+- Create: `ScreenshotButton/Core/SinkKind.swift`
+- Create: `ScreenshotButtonTests/Core/CoreEnumsTests.swift`
+
+Create the `ScreenshotButton/Core/` and `ScreenshotButtonTests/Core/` groups in Xcode first (New Group).
+
+- [ ] **Step 1: Write failing test**
+
+`ScreenshotButtonTests/Core/CoreEnumsTests.swift`:
+```swift
+import Testing
+@testable import ScreenshotButton
+
+@Test func captureModeIsSendableAndEquatable() {
+    let a: CaptureMode = .window
+    let b: CaptureMode = .area
+    #expect(a != b)
+    #expect(a == .window)
+}
+
+@Test func sinkKindIsSendableAndEquatable() {
+    let a: SinkKind = .toFile
+    let b: SinkKind = .toClipboard
+    #expect(a != b)
+    #expect(a == .toFile)
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL** (types do not exist yet)
+
+```bash
+xcodebuild test -project ScreenshotButton.xcodeproj -scheme ScreenshotButton \
+  -destination 'platform=macOS' \
+  -only-testing:ScreenshotButtonTests/CoreEnumsTests \
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO -quiet
+```
+Expected: compile error — "Cannot find type 'CaptureMode' in scope".
+
+- [ ] **Step 3: Implement**
+
+`ScreenshotButton/Core/CaptureMode.swift`:
+```swift
+import Foundation
+
+public enum CaptureMode: Equatable, Sendable {
+    case window
+    case area
+}
+```
+
+`ScreenshotButton/Core/SinkKind.swift`:
+```swift
+import Foundation
+
+public enum SinkKind: Equatable, Sendable {
+    case toFile
+    case toClipboard
+}
+```
+
+- [ ] **Step 4: Run — expect PASS**
+
+Same command as step 2. Expected: `** TEST SUCCEEDED **`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Core ScreenshotButtonTests/Core ScreenshotButton.xcodeproj
+git commit -m "feat: add CaptureMode and SinkKind enums"
+```
+
+---
+
+## Task 5: `CapturedWindow` value type
+
+**Files:**
+- Create: `ScreenshotButton/Core/CapturedWindow.swift`
+- Create: `ScreenshotButtonTests/Core/CapturedWindowTests.swift`
+
+- [ ] **Step 1: Write failing test**
+
+```swift
+import Testing
+import CoreGraphics
+@testable import ScreenshotButton
+
+@Test func capturedWindowHasStableIdentity() {
+    let a = CapturedWindow(id: 42, frame: .zero, title: "A", ownerName: "X")
+    let b = CapturedWindow(id: 42, frame: .init(x: 9, y: 9, width: 9, height: 9), title: "B", ownerName: "Y")
+    #expect(a.id == b.id)
+}
+
+@Test func capturedWindowEquatableByAllFields() {
+    let a = CapturedWindow(id: 1, frame: .zero, title: "T", ownerName: "O")
+    let b = CapturedWindow(id: 1, frame: .zero, title: "T", ownerName: "O")
+    let c = CapturedWindow(id: 1, frame: .zero, title: "T", ownerName: "Q")
+    #expect(a == b)
+    #expect(a != c)
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL** ("Cannot find type 'CapturedWindow'").
+
+- [ ] **Step 3: Implement**
+
+`ScreenshotButton/Core/CapturedWindow.swift`:
+```swift
+import CoreGraphics
+
+public struct CapturedWindow: Equatable, Sendable, Identifiable {
+    public let id: CGWindowID
+    public let frame: CGRect        // global screen coordinates
+    public let title: String?
+    public let ownerName: String?
+
+    public init(id: CGWindowID, frame: CGRect, title: String?, ownerName: String?) {
+        self.id = id
+        self.frame = frame
+        self.title = title
+        self.ownerName = ownerName
+    }
+}
+```
+
+- [ ] **Step 4: Run — expect PASS.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Core ScreenshotButtonTests/Core ScreenshotButton.xcodeproj
+git commit -m "feat: add CapturedWindow value type"
+```
+
+---
+
+## Task 6: `AreaGeometry` — rectangle normalization and cancel threshold
+
+**Files:**
+- Create: `ScreenshotButton/Core/AreaGeometry.swift`
+- Create: `ScreenshotButtonTests/Core/AreaGeometryTests.swift`
+
+- [ ] **Step 1: Write failing tests**
+
+```swift
+import Testing
+import CoreGraphics
+@testable import ScreenshotButton
+
+@Test(arguments: [
+    (CGPoint(x: 0, y: 0),   CGPoint(x: 10, y: 10), CGRect(x: 0, y: 0, width: 10, height: 10)),
+    (CGPoint(x: 10, y: 10), CGPoint(x: 0, y: 0),   CGRect(x: 0, y: 0, width: 10, height: 10)),
+    (CGPoint(x: 5, y: 20),  CGPoint(x: 25, y: 0),  CGRect(x: 5, y: 0, width: 20, height: 20)),
+    (CGPoint(x: 3, y: 3),   CGPoint(x: 3, y: 3),   CGRect(x: 3, y: 3, width: 0,  height: 0)),
+])
+func rectangleNormalizes(start: CGPoint, end: CGPoint, expected: CGRect) {
+    #expect(AreaGeometry.rectangle(from: start, to: end) == expected)
+}
+
+@Test(arguments: [
+    (CGRect(x: 0, y: 0, width: 0,   height: 0),   true),
+    (CGRect(x: 0, y: 0, width: 4,   height: 4),   true),
+    (CGRect(x: 0, y: 0, width: 5,   height: 5),   false),
+    (CGRect(x: 0, y: 0, width: 100, height: 100), false),
+])
+func cancelThreshold(rect: CGRect, isCancel: Bool) {
+    #expect(AreaGeometry.isCancel(rect) == isCancel)
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL.**
+
+- [ ] **Step 3: Implement**
+
+`ScreenshotButton/Core/AreaGeometry.swift`:
+```swift
+import CoreGraphics
+
+enum AreaGeometry {
+    /// A drag smaller than this on either axis is treated as an accidental click.
+    static let minSide: CGFloat = 5
+
+    static func rectangle(from start: CGPoint, to end: CGPoint) -> CGRect {
+        CGRect(
+            x: min(start.x, end.x),
+            y: min(start.y, end.y),
+            width: abs(end.x - start.x),
+            height: abs(end.y - start.y)
+        )
+    }
+
+    static func isCancel(_ rect: CGRect) -> Bool {
+        rect.width < minSide || rect.height < minSide
+    }
+}
+```
+
+- [ ] **Step 4: Run — expect PASS.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Core ScreenshotButtonTests/Core ScreenshotButton.xcodeproj
+git commit -m "feat: add AreaGeometry for drag rectangle math"
+```
+
+---
+
+## Task 7: `HitTesting` — topmost window at a point
+
+**Files:**
+- Create: `ScreenshotButton/Core/HitTesting.swift`
+- Create: `ScreenshotButtonTests/Core/HitTestingTests.swift`
+
+- [ ] **Step 1: Write failing tests**
+
+```swift
+import Testing
+import CoreGraphics
+@testable import ScreenshotButton
+
+private func w(_ id: CGWindowID, _ r: CGRect) -> CapturedWindow {
+    CapturedWindow(id: id, frame: r, title: nil, ownerName: nil)
+}
+
+@Test func topmostReturnsNilForEmptyList() {
+    #expect(HitTesting.topmost(at: .zero, in: []) == nil)
+}
+
+@Test func topmostReturnsNilWhenNoneContainPoint() {
+    let ws = [w(1, CGRect(x: 0, y: 0, width: 10, height: 10))]
+    #expect(HitTesting.topmost(at: CGPoint(x: 100, y: 100), in: ws) == nil)
+}
+
+@Test func topmostReturnsFrontmostContainingPoint() {
+    // Windows are supplied in front-to-back z-order.
+    let ws = [
+        w(1, CGRect(x: 0, y: 0, width: 100, height: 100)),
+        w(2, CGRect(x: 0, y: 0, width: 200, height: 200)),
+    ]
+    #expect(HitTesting.topmost(at: CGPoint(x: 50, y: 50), in: ws)?.id == 1)
+    #expect(HitTesting.topmost(at: CGPoint(x: 150, y: 150), in: ws)?.id == 2)
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL.**
+
+- [ ] **Step 3: Implement**
+
+`ScreenshotButton/Core/HitTesting.swift`:
+```swift
+import CoreGraphics
+
+enum HitTesting {
+    /// `windows` must be in front-to-back z-order (index 0 is frontmost).
+    static func topmost(at point: CGPoint, in windows: [CapturedWindow]) -> CapturedWindow? {
+        windows.first { $0.frame.contains(point) }
+    }
+}
+```
+
+- [ ] **Step 4: Run — expect PASS.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Core ScreenshotButtonTests/Core ScreenshotButton.xcodeproj
+git commit -m "feat: add HitTesting for topmost-window lookup"
+```
+
+---
+
+## Task 8: `CaptureSession` — Observable state machine
+
+**Files:**
+- Create: `ScreenshotButton/Session/CaptureSession.swift`
+- Create: `ScreenshotButtonTests/Session/CaptureSessionTests.swift`
+
+Create the `Session/` group first.
+
+- [ ] **Step 1: Write failing tests**
+
+```swift
+import Testing
+@testable import ScreenshotButton
+
+@MainActor
+@Test func startsInIdle() {
+    let s = CaptureSession()
+    #expect(s.state == .idle)
+    #expect(s.hoveredWindow == nil)
+}
+
+@MainActor
+@Test func startTransitionsToCapturingWithModeAndSink() {
+    let s = CaptureSession()
+    s.start(mode: .window, sink: .toFile)
+    #expect(s.state == .capturing)
+    #expect(s.mode == .window)
+    #expect(s.sink == .toFile)
+}
+
+@MainActor
+@Test func startIsNoOpWhenNotIdle() {
+    let s = CaptureSession()
+    s.start(mode: .window, sink: .toFile)
+    s.start(mode: .area, sink: .toClipboard)
+    #expect(s.mode == .window)
+    #expect(s.sink == .toFile)
+}
+
+@MainActor
+@Test func toggleSwapsModeAndClearsHover() {
+    let s = CaptureSession()
+    s.start(mode: .window, sink: .toFile)
+    s.hover(CapturedWindow(id: 1, frame: .zero, title: nil, ownerName: nil))
+    s.toggle()
+    #expect(s.mode == .area)
+    #expect(s.hoveredWindow == nil)
+    s.toggle()
+    #expect(s.mode == .window)
+}
+
+@MainActor
+@Test func toggleIgnoredWhenIdle() {
+    let s = CaptureSession()
+    s.toggle()
+    #expect(s.mode == .window) // default
+    #expect(s.state == .idle)
+}
+
+@MainActor
+@Test func hoverOnlyUpdatesInWindowMode() {
+    let win = CapturedWindow(id: 1, frame: .zero, title: nil, ownerName: nil)
+    let s = CaptureSession()
+    s.start(mode: .window, sink: .toFile)
+    s.hover(win)
+    #expect(s.hoveredWindow == win)
+    s.toggle() // -> area
+    s.hover(win)
+    #expect(s.hoveredWindow == nil)
+}
+
+@MainActor
+@Test func cancelReturnsToIdle() {
+    let s = CaptureSession()
+    s.start(mode: .window, sink: .toFile)
+    s.cancel()
+    #expect(s.state == .idle)
+    #expect(s.hoveredWindow == nil)
+}
+
+@MainActor
+@Test func commitMovesToDeliveringThenFinishReturnsToIdle() {
+    let s = CaptureSession()
+    s.start(mode: .window, sink: .toFile)
+    s.commit()
+    #expect(s.state == .delivering)
+    s.finish()
+    #expect(s.state == .idle)
+}
+
+@MainActor
+@Test func cancelHasNoEffectDuringDelivering() {
+    let s = CaptureSession()
+    s.start(mode: .window, sink: .toFile)
+    s.commit()
+    s.cancel()
+    #expect(s.state == .delivering)
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL.**
+
+- [ ] **Step 3: Implement**
+
+`ScreenshotButton/Session/CaptureSession.swift`:
+```swift
+import Foundation
+import Observation
+
+@MainActor
+@Observable
+final class CaptureSession {
+    enum State: Equatable, Sendable {
+        case idle
+        case capturing
+        case delivering
+    }
+
+    private(set) var state: State = .idle
+    private(set) var mode: CaptureMode = .window
+    private(set) var sink: SinkKind = .toFile
+    private(set) var hoveredWindow: CapturedWindow?
+
+    init() {}
+
+    func start(mode: CaptureMode, sink: SinkKind) {
+        guard state == .idle else { return }
+        self.mode = mode
+        self.sink = sink
+        self.hoveredWindow = nil
+        self.state = .capturing
+    }
+
+    func toggle() {
+        guard state == .capturing else { return }
+        mode = (mode == .window) ? .area : .window
+        hoveredWindow = nil
+    }
+
+    func hover(_ window: CapturedWindow?) {
+        guard state == .capturing, mode == .window else {
+            hoveredWindow = nil
+            return
+        }
+        hoveredWindow = window
+    }
+
+    func cancel() {
+        guard state == .capturing else { return }
+        state = .idle
+        hoveredWindow = nil
+    }
+
+    func commit() {
+        guard state == .capturing else { return }
+        state = .delivering
+    }
+
+    func finish() {
+        state = .idle
+        hoveredWindow = nil
+    }
+}
+```
+
+- [ ] **Step 4: Run — expect PASS.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Session ScreenshotButtonTests/Session ScreenshotButton.xcodeproj
+git commit -m "feat: add CaptureSession state machine"
+```
+
+---
+
+## Task 9: `SCShareableContentProviding` protocol + `FakeSCShareableContent`
+
+**Files:**
+- Create: `ScreenshotButton/Services/SCShareableContentProviding.swift`
+- Create: `ScreenshotButtonTests/Fakes/FakeSCShareableContent.swift`
+
+Create the `Services/` and `ScreenshotButtonTests/Fakes/` groups.
+
+- [ ] **Step 1: Write failing test** (trivial — confirms the fake returns its injected content)
+
+`ScreenshotButtonTests/Services/SCShareableContentProvidingTests.swift`:
+```swift
+import Testing
+@testable import ScreenshotButton
+
+@Test func fakeShareableContentReturnsInjectedWindows() async throws {
+    let ws = [CapturedWindow(id: 1, frame: .zero, title: "A", ownerName: "App")]
+    let fake = FakeSCShareableContent(result: .success(ws))
+    let out = try await fake.shareableContent()
+    #expect(out == ws)
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL.**
+
+- [ ] **Step 3: Implement protocol and fake**
+
+`ScreenshotButton/Services/SCShareableContentProviding.swift`:
+```swift
+import Foundation
+
+protocol SCShareableContentProviding: Sendable {
+    func shareableContent() async throws -> [CapturedWindow]
+}
+```
+
+`ScreenshotButtonTests/Fakes/FakeSCShareableContent.swift`:
+```swift
+import Foundation
+@testable import ScreenshotButton
+
+struct FakeSCShareableContent: SCShareableContentProviding {
+    var result: Result<[CapturedWindow], Error>
+
+    func shareableContent() async throws -> [CapturedWindow] {
+        try result.get()
+    }
+}
+```
+
+- [ ] **Step 4: Run — expect PASS.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Services ScreenshotButtonTests/Fakes ScreenshotButtonTests/Services ScreenshotButton.xcodeproj
+git commit -m "feat: add SCShareableContentProviding protocol and fake"
+```
+
+---
+
+## Task 10: `WindowEnumerator` — real `SCShareableContent` adapter
+
+**Files:**
+- Create: `ScreenshotButton/Services/WindowEnumerator.swift`
+
+No unit test — this class is a straight adapter over a framework call, and we've already proven the protocol contract in Task 9. Its correctness is verified by the integration smoke test in Task 20.
+
+- [ ] **Step 1: Implement**
+
+`ScreenshotButton/Services/WindowEnumerator.swift`:
+```swift
+import Foundation
+import ScreenCaptureKit
+
+struct WindowEnumerator: SCShareableContentProviding {
+    func shareableContent() async throws -> [CapturedWindow] {
+        let content = try await SCShareableContent.current
+        // SCShareableContent.windows is documented as being in front-to-back order.
+        return content.windows
+            .filter { $0.owningApplication != nil }
+            .filter { ($0.title ?? "").isEmpty == false }
+            .map { sc in
+                CapturedWindow(
+                    id: sc.windowID,
+                    frame: sc.frame,
+                    title: sc.title,
+                    ownerName: sc.owningApplication?.applicationName
+                )
+            }
+    }
+}
+```
+
+- [ ] **Step 2: Verify it builds**
+
+```bash
+xcodebuild build -project ScreenshotButton.xcodeproj -scheme ScreenshotButton \
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO -quiet
+```
+Expected: `** BUILD SUCCEEDED **`.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add ScreenshotButton/Services ScreenshotButton.xcodeproj
+git commit -m "feat: add WindowEnumerator backed by ScreenCaptureKit"
+```
+
+---
+
+## Task 11: `ScreenshotManaging` protocol + `FakeScreenshotManager` + `Capturer`
+
+**Files:**
+- Create: `ScreenshotButton/Services/ScreenshotManaging.swift`
+- Create: `ScreenshotButton/Services/Capturer.swift`
+- Create: `ScreenshotButtonTests/Fakes/FakeScreenshotManager.swift`
+- Create: `ScreenshotButtonTests/Services/CapturerTests.swift`
+
+The capture target is an opaque value passed to the manager. We keep `Capturer` thin and test that it forwards correctly.
+
+- [ ] **Step 1: Write failing tests**
+
+```swift
+import Testing
+import CoreGraphics
+@testable import ScreenshotButton
+
+@MainActor
+@Test func capturerForwardsWindowTarget() async throws {
+    let fake = FakeScreenshotManager()
+    let capturer = Capturer(manager: fake)
+    let win = CapturedWindow(id: 7, frame: .init(x: 0, y: 0, width: 100, height: 100), title: nil, ownerName: nil)
+
+    _ = try await capturer.captureWindow(win)
+    #expect(fake.lastTarget == .window(id: 7))
+}
+
+@MainActor
+@Test func capturerForwardsAreaTarget() async throws {
+    let fake = FakeScreenshotManager()
+    let capturer = Capturer(manager: fake)
+    let rect = CGRect(x: 10, y: 20, width: 30, height: 40)
+
+    _ = try await capturer.captureArea(rect, displayID: 99)
+    #expect(fake.lastTarget == .area(rect: rect, displayID: 99))
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL.**
+
+- [ ] **Step 3: Implement**
+
+`ScreenshotButton/Services/ScreenshotManaging.swift`:
+```swift
+import CoreGraphics
+
+enum CaptureTarget: Equatable, Sendable {
+    case window(id: CGWindowID)
+    case area(rect: CGRect, displayID: CGDirectDisplayID)
+}
+
+protocol ScreenshotManaging: Sendable {
+    func capture(_ target: CaptureTarget) async throws -> CGImage
+}
+```
+
+`ScreenshotButton/Services/Capturer.swift`:
+```swift
+import CoreGraphics
+
+struct Capturer: Sendable {
+    let manager: ScreenshotManaging
+
+    func captureWindow(_ window: CapturedWindow) async throws -> CGImage {
+        try await manager.capture(.window(id: window.id))
+    }
+
+    func captureArea(_ rect: CGRect, displayID: CGDirectDisplayID) async throws -> CGImage {
+        try await manager.capture(.area(rect: rect, displayID: displayID))
+    }
+}
+```
+
+`ScreenshotButtonTests/Fakes/FakeScreenshotManager.swift`:
+```swift
+import CoreGraphics
+@testable import ScreenshotButton
+
+final class FakeScreenshotManager: ScreenshotManaging, @unchecked Sendable {
+    // @unchecked: test-only single-threaded fake; test drives it on MainActor.
+    var lastTarget: CaptureTarget?
+    var result: Result<CGImage, Error>?
+
+    func capture(_ target: CaptureTarget) async throws -> CGImage {
+        lastTarget = target
+        if let result { return try result.get() }
+        return Self.makeDummy()
+    }
+
+    static func makeDummy() -> CGImage {
+        let ctx = CGContext(
+            data: nil, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )!
+        return ctx.makeImage()!
+    }
+}
+```
+
+- [ ] **Step 4: Run — expect PASS.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Services ScreenshotButtonTests/Fakes ScreenshotButtonTests/Services ScreenshotButton.xcodeproj
+git commit -m "feat: add Capturer and ScreenshotManaging protocol"
+```
+
+---
+
+## Task 12: Real `SCScreenshotManagerAdapter`
+
+**Files:**
+- Create: `ScreenshotButton/Services/SCScreenshotManagerAdapter.swift`
+
+- [ ] **Step 1: Implement**
+
+`ScreenshotButton/Services/SCScreenshotManagerAdapter.swift`:
+```swift
+import CoreGraphics
+import ScreenCaptureKit
+
+struct SCScreenshotManagerAdapter: ScreenshotManaging {
+    func capture(_ target: CaptureTarget) async throws -> CGImage {
+        switch target {
+        case .window(let id):
+            let content = try await SCShareableContent.current
+            guard let scWindow = content.windows.first(where: { $0.windowID == id }) else {
+                throw CaptureError.windowGone
+            }
+            let filter = SCContentFilter(desktopIndependentWindow: scWindow)
+            let config = SCStreamConfiguration()
+            config.width = Int(scWindow.frame.width * 2)   // Retina
+            config.height = Int(scWindow.frame.height * 2)
+            config.showsCursor = false
+            return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+
+        case .area(let rect, let displayID):
+            let content = try await SCShareableContent.current
+            guard let scDisplay = content.displays.first(where: { $0.displayID == displayID }) else {
+                throw CaptureError.displayGone
+            }
+            let filter = SCContentFilter(display: scDisplay, excludingWindows: [])
+            let config = SCStreamConfiguration()
+            config.sourceRect = rect
+            config.width = Int(rect.width * 2)
+            config.height = Int(rect.height * 2)
+            config.showsCursor = false
+            return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+        }
+    }
+}
+
+enum CaptureError: Error, Equatable {
+    case windowGone
+    case displayGone
+}
+```
+
+- [ ] **Step 2: Build**
+
+```bash
+xcodebuild build -project ScreenshotButton.xcodeproj -scheme ScreenshotButton \
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO -quiet
+```
+Expected: `** BUILD SUCCEEDED **`.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add ScreenshotButton/Services ScreenshotButton.xcodeproj
+git commit -m "feat: add SCScreenshotManager adapter for ScreenCaptureKit"
+```
+
+---
+
+## Task 13: PNG encoding
+
+**Files:**
+- Create: `ScreenshotButton/Services/PNGEncoder.swift`
+- Create: `ScreenshotButtonTests/Services/PNGEncoderTests.swift`
+
+- [ ] **Step 1: Write failing test**
+
+```swift
+import Testing
+import CoreGraphics
+import ImageIO
+@testable import ScreenshotButton
+
+@Test func pngEncodeRoundTripsDimensions() throws {
+    let image = makeTestImage(width: 42, height: 17)
+    let data = try PNGEncoder.encode(image)
+    let src = CGImageSourceCreateWithData(data as CFData, nil)!
+    let decoded = CGImageSourceCreateImageAtIndex(src, 0, nil)!
+    #expect(decoded.width == 42)
+    #expect(decoded.height == 17)
+}
+
+private func makeTestImage(width: Int, height: Int) -> CGImage {
+    let ctx = CGContext(
+        data: nil, width: width, height: height, bitsPerComponent: 8,
+        bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    )!
+    ctx.setFillColor(CGColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1))
+    ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+    return ctx.makeImage()!
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL.**
+
+- [ ] **Step 3: Implement**
+
+`ScreenshotButton/Services/PNGEncoder.swift`:
+```swift
+import Foundation
+import CoreGraphics
+import ImageIO
+import UniformTypeIdentifiers
+
+enum PNGEncoder {
+    enum Failure: Error { case encodingFailed }
+
+    static func encode(_ image: CGImage, dpi: CGFloat = 144) throws -> Data {
+        let data = NSMutableData()
+        guard let dest = CGImageDestinationCreateWithData(
+            data, UTType.png.identifier as CFString, 1, nil
+        ) else {
+            throw Failure.encodingFailed
+        }
+        let properties: [CFString: Any] = [
+            kCGImagePropertyDPIWidth: dpi,
+            kCGImagePropertyDPIHeight: dpi,
+        ]
+        CGImageDestinationAddImage(dest, image, properties as CFDictionary)
+        guard CGImageDestinationFinalize(dest) else {
+            throw Failure.encodingFailed
+        }
+        return data as Data
+    }
+}
+```
+
+- [ ] **Step 4: Run — expect PASS.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Services ScreenshotButtonTests/Services ScreenshotButton.xcodeproj
+git commit -m "feat: add PNG encoder with Retina DPI"
+```
+
+---
+
+## Task 14: `FileSink` — write temp PNG and open in Preview
+
+**Files:**
+- Create: `ScreenshotButton/Services/FileWriting.swift`
+- Create: `ScreenshotButton/Services/PreviewOpening.swift`
+- Create: `ScreenshotButton/Services/FileSink.swift`
+- Create: `ScreenshotButtonTests/Fakes/FakeFileWriter.swift`
+- Create: `ScreenshotButtonTests/Fakes/FakePreviewOpener.swift`
+- Create: `ScreenshotButtonTests/Services/FileSinkTests.swift`
+
+- [ ] **Step 1: Write failing tests**
+
+```swift
+import Testing
+import CoreGraphics
+@testable import ScreenshotButton
+
+@Test func fileSinkWritesPngThenOpensInPreview() async throws {
+    let writer = FakeFileWriter()
+    let opener = FakePreviewOpener()
+    let sink = FileSink(
+        writer: writer,
+        opener: opener,
+        nowProvider: { Date(timeIntervalSince1970: 1_700_000_000) }
+    )
+    let image = FakeScreenshotManager.makeDummy()
+    let url = try await sink.deliver(image)
+
+    #expect(writer.writtenURL == url)
+    #expect(url.lastPathComponent.hasPrefix("ScreenshotButton-"))
+    #expect(url.lastPathComponent.hasSuffix(".png"))
+    #expect(opener.openedURL == url)
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL.**
+
+- [ ] **Step 3: Implement protocols, fakes, sink**
+
+`ScreenshotButton/Services/FileWriting.swift`:
+```swift
+import Foundation
+
+protocol FileWriting: Sendable {
+    func write(_ data: Data, to url: URL) throws
+    func createDirectory(at url: URL) throws
+}
+
+struct SystemFileWriter: FileWriting {
+    func write(_ data: Data, to url: URL) throws {
+        try data.write(to: url, options: .atomic)
+    }
+    func createDirectory(at url: URL) throws {
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    }
+}
+```
+
+`ScreenshotButton/Services/PreviewOpening.swift`:
+```swift
+import AppKit
+
+protocol PreviewOpening: Sendable {
+    func open(_ url: URL) async throws
+}
+
+struct SystemPreviewOpener: PreviewOpening {
+    func open(_ url: URL) async throws {
+        let preview = URL(fileURLWithPath: "/System/Applications/Preview.app")
+        _ = try await NSWorkspace.shared.open([url], withApplicationAt: preview, configuration: .init())
+    }
+}
+```
+
+`ScreenshotButton/Services/FileSink.swift`:
+```swift
+import Foundation
+import CoreGraphics
+
+struct FileSink: Sendable {
+    static let folderName = "ScreenshotButton"
+
+    let writer: FileWriting
+    let opener: PreviewOpening
+    let nowProvider: @Sendable () -> Date
+    let tempDirectoryProvider: @Sendable () -> URL
+
+    init(
+        writer: FileWriting = SystemFileWriter(),
+        opener: PreviewOpening = SystemPreviewOpener(),
+        nowProvider: @escaping @Sendable () -> Date = Date.init,
+        tempDirectoryProvider: @escaping @Sendable () -> URL = { URL(fileURLWithPath: NSTemporaryDirectory()) }
+    ) {
+        self.writer = writer
+        self.opener = opener
+        self.nowProvider = nowProvider
+        self.tempDirectoryProvider = tempDirectoryProvider
+    }
+
+    @discardableResult
+    func deliver(_ image: CGImage) async throws -> URL {
+        let folder = tempDirectoryProvider().appendingPathComponent(Self.folderName, isDirectory: true)
+        try writer.createDirectory(at: folder)
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd-HH-mm-ss"
+        formatter.timeZone = .current
+        let url = folder.appendingPathComponent("ScreenshotButton-\(formatter.string(from: nowProvider())).png")
+
+        let data = try PNGEncoder.encode(image)
+        try writer.write(data, to: url)
+        try await opener.open(url)
+        return url
+    }
+}
+```
+
+`ScreenshotButtonTests/Fakes/FakeFileWriter.swift`:
+```swift
+import Foundation
+@testable import ScreenshotButton
+
+final class FakeFileWriter: FileWriting, @unchecked Sendable {
+    var writtenURL: URL?
+    var writtenData: Data?
+    var createdDirectories: [URL] = []
+
+    func write(_ data: Data, to url: URL) throws {
+        writtenURL = url
+        writtenData = data
+    }
+    func createDirectory(at url: URL) throws {
+        createdDirectories.append(url)
+    }
+}
+```
+
+`ScreenshotButtonTests/Fakes/FakePreviewOpener.swift`:
+```swift
+import Foundation
+@testable import ScreenshotButton
+
+final class FakePreviewOpener: PreviewOpening, @unchecked Sendable {
+    var openedURL: URL?
+    func open(_ url: URL) async throws {
+        openedURL = url
+    }
+}
+```
+
+- [ ] **Step 4: Run — expect PASS.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Services ScreenshotButtonTests/Fakes ScreenshotButtonTests/Services ScreenshotButton.xcodeproj
+git commit -m "feat: add FileSink with injected writer and Preview opener"
+```
+
+---
+
+## Task 15: `ClipboardSink`
+
+**Files:**
+- Create: `ScreenshotButton/Services/PasteboardWriting.swift`
+- Create: `ScreenshotButton/Services/ClipboardSink.swift`
+- Create: `ScreenshotButtonTests/Fakes/FakePasteboard.swift`
+- Create: `ScreenshotButtonTests/Services/ClipboardSinkTests.swift`
+
+- [ ] **Step 1: Write failing test**
+
+```swift
+import Testing
+import AppKit
+@testable import ScreenshotButton
+
+@Test func clipboardSinkWritesAnImage() {
+    let pb = FakePasteboard()
+    let sink = ClipboardSink(pasteboard: pb)
+    let image = FakeScreenshotManager.makeDummy()
+    sink.deliver(image)
+    #expect(pb.cleared)
+    #expect(pb.writtenImages.count == 1)
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL.**
+
+- [ ] **Step 3: Implement**
+
+`ScreenshotButton/Services/PasteboardWriting.swift`:
+```swift
+import AppKit
+
+protocol PasteboardWriting: AnyObject, Sendable {
+    func clearContents()
+    func write(_ image: NSImage)
+}
+
+final class SystemPasteboard: PasteboardWriting, @unchecked Sendable {
+    let underlying: NSPasteboard
+
+    init(_ underlying: NSPasteboard = .general) {
+        self.underlying = underlying
+    }
+
+    func clearContents() {
+        underlying.clearContents()
+    }
+    func write(_ image: NSImage) {
+        underlying.writeObjects([image])
+    }
+}
+```
+
+`ScreenshotButton/Services/ClipboardSink.swift`:
+```swift
+import AppKit
+import CoreGraphics
+
+struct ClipboardSink: Sendable {
+    let pasteboard: PasteboardWriting
+
+    init(pasteboard: PasteboardWriting = SystemPasteboard()) {
+        self.pasteboard = pasteboard
+    }
+
+    func deliver(_ image: CGImage) {
+        pasteboard.clearContents()
+        let ns = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
+        pasteboard.write(ns)
+    }
+}
+```
+
+`ScreenshotButtonTests/Fakes/FakePasteboard.swift`:
+```swift
+import AppKit
+@testable import ScreenshotButton
+
+final class FakePasteboard: PasteboardWriting, @unchecked Sendable {
+    var cleared = false
+    var writtenImages: [NSImage] = []
+
+    func clearContents() { cleared = true }
+    func write(_ image: NSImage) { writtenImages.append(image) }
+}
+```
+
+- [ ] **Step 4: Run — expect PASS.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Services ScreenshotButtonTests/Fakes ScreenshotButtonTests/Services ScreenshotButton.xcodeproj
+git commit -m "feat: add ClipboardSink with injected pasteboard"
+```
+
+---
+
+## Task 16: `TempCleanup` — prune files older than 24h
+
+**Files:**
+- Create: `ScreenshotButton/Services/TempCleanup.swift`
+- Create: `ScreenshotButtonTests/Services/TempCleanupTests.swift`
+
+- [ ] **Step 1: Write failing test**
+
+```swift
+import Testing
+import Foundation
+@testable import ScreenshotButton
+
+@Test func pruneDeletesFilesOlderThanCutoff() throws {
+    let fm = FileManager.default
+    let dir = fm.temporaryDirectory.appendingPathComponent("TempCleanupTests-\(UUID())", isDirectory: true)
+    try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+    defer { try? fm.removeItem(at: dir) }
+
+    let old = dir.appendingPathComponent("old.png")
+    let fresh = dir.appendingPathComponent("fresh.png")
+    try Data().write(to: old)
+    try Data().write(to: fresh)
+
+    // Backdate `old` to 48h ago.
+    let twoDaysAgo = Date(timeIntervalSinceNow: -60 * 60 * 48)
+    try fm.setAttributes([.modificationDate: twoDaysAgo], ofItemAtPath: old.path)
+
+    TempCleanup.prune(directory: dir, olderThan: 60 * 60 * 24, fileManager: fm, now: Date())
+
+    #expect(!fm.fileExists(atPath: old.path))
+    #expect(fm.fileExists(atPath: fresh.path))
+}
+
+@Test func pruneIsNoOpWhenDirectoryMissing() {
+    let fm = FileManager.default
+    let dir = fm.temporaryDirectory.appendingPathComponent("does-not-exist-\(UUID())", isDirectory: true)
+    // Should not throw.
+    TempCleanup.prune(directory: dir, olderThan: 60, fileManager: fm, now: Date())
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL.**
+
+- [ ] **Step 3: Implement**
+
+`ScreenshotButton/Services/TempCleanup.swift`:
+```swift
+import Foundation
+
+enum TempCleanup {
+    static func prune(
+        directory: URL,
+        olderThan seconds: TimeInterval,
+        fileManager: FileManager = .default,
+        now: Date = Date()
+    ) {
+        guard fileManager.fileExists(atPath: directory.path) else { return }
+        let cutoff = now.addingTimeInterval(-seconds)
+        let keys: [URLResourceKey] = [.contentModificationDateKey]
+        let entries = (try? fileManager.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: keys,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+        for url in entries {
+            guard
+                let values = try? url.resourceValues(forKeys: Set(keys)),
+                let mod = values.contentModificationDate,
+                mod < cutoff
+            else { continue }
+            try? fileManager.removeItem(at: url)
+        }
+    }
+}
+```
+
+- [ ] **Step 4: Run — expect PASS.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Services ScreenshotButtonTests/Services ScreenshotButton.xcodeproj
+git commit -m "feat: add TempCleanup for stale PNG pruning"
+```
+
+---
+
+## Task 17: `LaunchAtLogin` with injected `SMAppService` API
+
+**Files:**
+- Create: `ScreenshotButton/Services/SMAppServiceAPI.swift`
+- Create: `ScreenshotButton/Services/LaunchAtLogin.swift`
+- Create: `ScreenshotButtonTests/Fakes/FakeSMAppService.swift`
+- Create: `ScreenshotButtonTests/Services/LaunchAtLoginTests.swift`
+
+- [ ] **Step 1: Write failing tests**
+
+```swift
+import Testing
+import Foundation
+@testable import ScreenshotButton
+
+@MainActor
+@Test func enableRegistersAndPersists() throws {
+    let defaults = UserDefaults(suiteName: "LaunchAtLoginTests-\(UUID())")!
+    let api = FakeSMAppServiceAPI(initialStatus: .notRegistered)
+    let la = LaunchAtLogin(api: api, defaults: defaults)
+
+    try la.setEnabled(true)
+
+    #expect(api.registerCalls == 1)
+    #expect(defaults.bool(forKey: LaunchAtLogin.defaultsKey) == true)
+    #expect(la.isEnabled == true)
+}
+
+@MainActor
+@Test func disableUnregistersAndPersists() throws {
+    let defaults = UserDefaults(suiteName: "LaunchAtLoginTests-\(UUID())")!
+    defaults.set(true, forKey: LaunchAtLogin.defaultsKey)
+    let api = FakeSMAppServiceAPI(initialStatus: .enabled)
+    let la = LaunchAtLogin(api: api, defaults: defaults)
+
+    try la.setEnabled(false)
+
+    #expect(api.unregisterCalls == 1)
+    #expect(defaults.bool(forKey: LaunchAtLogin.defaultsKey) == false)
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL.**
+
+- [ ] **Step 3: Implement**
+
+`ScreenshotButton/Services/SMAppServiceAPI.swift`:
+```swift
+import Foundation
+import ServiceManagement
+
+enum SMAppServiceStatus: Sendable {
+    case notRegistered
+    case enabled
+    case requiresApproval
+    case notFound
+}
+
+protocol SMAppServiceAPI: AnyObject, Sendable {
+    var status: SMAppServiceStatus { get }
+    func register() throws
+    func unregister() throws
+}
+
+final class SystemSMAppService: SMAppServiceAPI, @unchecked Sendable {
+    var status: SMAppServiceStatus {
+        switch SMAppService.mainApp.status {
+        case .enabled: return .enabled
+        case .notRegistered: return .notRegistered
+        case .requiresApproval: return .requiresApproval
+        case .notFound: return .notFound
+        @unknown default: return .notFound
+        }
+    }
+    func register() throws { try SMAppService.mainApp.register() }
+    func unregister() throws { try SMAppService.mainApp.unregister() }
+}
+```
+
+`ScreenshotButton/Services/LaunchAtLogin.swift`:
+```swift
+import Foundation
+
+@MainActor
+final class LaunchAtLogin {
+    static let defaultsKey = "dev.greglamb.ScreenshotButton.launchAtLogin"
+
+    private let api: SMAppServiceAPI
+    private let defaults: UserDefaults
+
+    init(api: SMAppServiceAPI = SystemSMAppService(), defaults: UserDefaults = .standard) {
+        self.api = api
+        self.defaults = defaults
+    }
+
+    var isEnabled: Bool {
+        defaults.bool(forKey: Self.defaultsKey)
+    }
+
+    func setEnabled(_ enabled: Bool) throws {
+        if enabled {
+            try api.register()
+        } else {
+            try api.unregister()
+        }
+        defaults.set(enabled, forKey: Self.defaultsKey)
+    }
+}
+```
+
+`ScreenshotButtonTests/Fakes/FakeSMAppService.swift`:
+```swift
+import Foundation
+@testable import ScreenshotButton
+
+final class FakeSMAppServiceAPI: SMAppServiceAPI, @unchecked Sendable {
+    var status: SMAppServiceStatus
+    var registerCalls = 0
+    var unregisterCalls = 0
+    var registerError: Error?
+    var unregisterError: Error?
+
+    init(initialStatus: SMAppServiceStatus) {
+        self.status = initialStatus
+    }
+
+    func register() throws {
+        registerCalls += 1
+        if let registerError { throw registerError }
+        status = .enabled
+    }
+    func unregister() throws {
+        unregisterCalls += 1
+        if let unregisterError { throw unregisterError }
+        status = .notRegistered
+    }
+}
+```
+
+- [ ] **Step 4: Run — expect PASS.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Services ScreenshotButtonTests/Fakes ScreenshotButtonTests/Services ScreenshotButton.xcodeproj
+git commit -m "feat: add LaunchAtLogin backed by SMAppService"
+```
+
+---
+
+## Task 18: `CaptureController` — coordinator that wires session + services
+
+**Files:**
+- Create: `ScreenshotButton/Session/CaptureController.swift`
+- Create: `ScreenshotButtonTests/Session/CaptureControllerTests.swift`
+
+`CaptureController` is the single entry point the UI calls (`start(mode:sink:)`, `commitWindow(_:)`, `commitArea(_:displayID:)`, `cancel()`). It owns the `CaptureSession`, pulls windows from the enumerator on demand, and routes the captured image to the right sink.
+
+- [ ] **Step 1: Write failing tests**
+
+```swift
+import Testing
+import CoreGraphics
+@testable import ScreenshotButton
+
+@MainActor
+@Test func startSetsSessionCapturing() {
+    let c = makeController()
+    c.start(mode: .window, sink: .toFile)
+    #expect(c.session.state == .capturing)
+    #expect(c.session.mode == .window)
+    #expect(c.session.sink == .toFile)
+}
+
+@MainActor
+@Test func commitWindowWithFileSinkWritesAndReturnsToIdle() async throws {
+    let writer = FakeFileWriter()
+    let opener = FakePreviewOpener()
+    let c = makeController(fileWriter: writer, previewOpener: opener)
+    c.start(mode: .window, sink: .toFile)
+
+    let win = CapturedWindow(id: 1, frame: .zero, title: nil, ownerName: nil)
+    try await c.commitWindow(win)
+
+    #expect(writer.writtenURL != nil)
+    #expect(opener.openedURL != nil)
+    #expect(c.session.state == .idle)
+}
+
+@MainActor
+@Test func commitAreaWithClipboardSinkCopiesAndReturnsToIdle() async throws {
+    let pb = FakePasteboard()
+    let c = makeController(pasteboard: pb)
+    c.start(mode: .area, sink: .toClipboard)
+
+    try await c.commitArea(CGRect(x: 0, y: 0, width: 10, height: 10), displayID: 1)
+
+    #expect(pb.writtenImages.count == 1)
+    #expect(c.session.state == .idle)
+}
+
+@MainActor
+@Test func cancelReturnsToIdle() {
+    let c = makeController()
+    c.start(mode: .window, sink: .toFile)
+    c.cancel()
+    #expect(c.session.state == .idle)
+}
+
+@MainActor
+private func makeController(
+    fileWriter: FakeFileWriter = FakeFileWriter(),
+    previewOpener: FakePreviewOpener = FakePreviewOpener(),
+    pasteboard: FakePasteboard = FakePasteboard()
+) -> CaptureController {
+    CaptureController(
+        enumerator: FakeSCShareableContent(result: .success([])),
+        capturer: Capturer(manager: FakeScreenshotManager()),
+        fileSink: FileSink(
+            writer: fileWriter,
+            opener: previewOpener,
+            nowProvider: { Date(timeIntervalSince1970: 0) },
+            tempDirectoryProvider: { URL(fileURLWithPath: NSTemporaryDirectory()) }
+        ),
+        clipboardSink: ClipboardSink(pasteboard: pasteboard)
+    )
+}
+```
+
+- [ ] **Step 2: Run — expect FAIL.**
+
+- [ ] **Step 3: Implement**
+
+`ScreenshotButton/Session/CaptureController.swift`:
+```swift
+import Foundation
+import CoreGraphics
+import OSLog
+
+@MainActor
+@Observable
+final class CaptureController {
+    let session = CaptureSession()
+
+    private let enumerator: SCShareableContentProviding
+    private let capturer: Capturer
+    private let fileSink: FileSink
+    private let clipboardSink: ClipboardSink
+    private let log = Logger(subsystem: "dev.greglamb.ScreenshotButton", category: "capture")
+
+    init(
+        enumerator: SCShareableContentProviding,
+        capturer: Capturer,
+        fileSink: FileSink,
+        clipboardSink: ClipboardSink
+    ) {
+        self.enumerator = enumerator
+        self.capturer = capturer
+        self.fileSink = fileSink
+        self.clipboardSink = clipboardSink
+    }
+
+    func start(mode: CaptureMode, sink: SinkKind) {
+        session.start(mode: mode, sink: sink)
+    }
+
+    func cancel() {
+        session.cancel()
+    }
+
+    func enumerateWindows() async throws -> [CapturedWindow] {
+        try await enumerator.shareableContent()
+    }
+
+    func commitWindow(_ window: CapturedWindow) async throws {
+        session.commit()
+        defer { session.finish() }
+        let image = try await capturer.captureWindow(window)
+        try await deliver(image, sink: session.sink)
+    }
+
+    func commitArea(_ rect: CGRect, displayID: CGDirectDisplayID) async throws {
+        session.commit()
+        defer { session.finish() }
+        let image = try await capturer.captureArea(rect, displayID: displayID)
+        try await deliver(image, sink: session.sink)
+    }
+
+    private func deliver(_ image: CGImage, sink: SinkKind) async throws {
+        switch sink {
+        case .toFile:
+            _ = try await fileSink.deliver(image)
+        case .toClipboard:
+            clipboardSink.deliver(image)
+        }
+    }
+}
+```
+
+- [ ] **Step 4: Run — expect PASS.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton/Session ScreenshotButtonTests/Session ScreenshotButton.xcodeproj
+git commit -m "feat: add CaptureController to orchestrate session and sinks"
+```
+
+---
+
+## Task 19: `MenuBarExtra` wiring
+
+**Files:**
+- Modify: `ScreenshotButton/ScreenshotButtonApp.swift`
+- Create: `ScreenshotButton/UI/MenuView.swift`
+
+- [ ] **Step 1: Write `MenuView`**
+
+`ScreenshotButton/UI/MenuView.swift`:
+```swift
+import SwiftUI
+import AppKit
+
+struct MenuView: View {
+    let controller: CaptureController
+    let launchAtLogin: LaunchAtLogin
+    @State private var launchAtLoginEnabled: Bool
+
+    init(controller: CaptureController, launchAtLogin: LaunchAtLogin) {
+        self.controller = controller
+        self.launchAtLogin = launchAtLogin
+        _launchAtLoginEnabled = State(initialValue: launchAtLogin.isEnabled)
+    }
+
+    var body: some View {
+        Button("Window to File")      { controller.start(mode: .window, sink: .toFile) }
+        Button("Area to File")        { controller.start(mode: .area,   sink: .toFile) }
+        Divider()
+        Button("Window to Clipboard") { controller.start(mode: .window, sink: .toClipboard) }
+        Button("Area to Clipboard")   { controller.start(mode: .area,   sink: .toClipboard) }
+        Divider()
+        Toggle("Autolaunch", isOn: Binding(
+            get: { launchAtLoginEnabled },
+            set: { newValue in
+                do {
+                    try launchAtLogin.setEnabled(newValue)
+                    launchAtLoginEnabled = newValue
+                } catch {
+                    // Revert the toggle if registration failed.
+                    launchAtLoginEnabled = launchAtLogin.isEnabled
+                }
+            }
+        ))
+        Divider()
+        Button("Quit ScreenshotButton") { NSApp.terminate(nil) }
+            .keyboardShortcut("q")
+    }
+}
+```
+
+- [ ] **Step 2: Rewrite `ScreenshotButtonApp.swift` to mount `MenuBarExtra`**
+
+```swift
+import SwiftUI
+
+@main
+struct ScreenshotButtonApp: App {
+    @State private var controller: CaptureController = .live()
+    private let launchAtLogin = LaunchAtLogin()
+
+    var body: some Scene {
+        MenuBarExtra {
+            MenuView(controller: controller, launchAtLogin: launchAtLogin)
+        } label: {
+            Image(systemName: "camera")
+                .accessibilityLabel("ScreenshotButton")
+        }
+    }
+}
+
+extension CaptureController {
+    @MainActor
+    static func live() -> CaptureController {
+        CaptureController(
+            enumerator: WindowEnumerator(),
+            capturer: Capturer(manager: SCScreenshotManagerAdapter()),
+            fileSink: FileSink(),
+            clipboardSink: ClipboardSink()
+        )
+    }
+}
+```
+
+- [ ] **Step 3: Build**
+
+```bash
+xcodebuild build -project ScreenshotButton.xcodeproj -scheme ScreenshotButton \
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO -quiet
+```
+Expected: `** BUILD SUCCEEDED **`.
+
+- [ ] **Step 4: Manual verification**
+
+Run the app. Expected: a camera icon appears in the menu bar. Clicking it shows the six-item menu from the design spec. Toggling Autolaunch should not crash (macOS may prompt once for approval). Quit works. No Dock icon.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ScreenshotButton ScreenshotButton.xcodeproj
+git commit -m "feat: add MenuBarExtra with four capture modes"
+```
+
+---
+
+## Task 20: Overlay panels (AppKit) and end-to-end capture
+
+**Files:**
+- Create: `ScreenshotButton/UI/OverlayPanel.swift`
+- Create: `ScreenshotButton/UI/OverlayView.swift`
+- Create: `ScreenshotButton/UI/OverlayManager.swift`
+- Modify: `ScreenshotButton/ScreenshotButtonApp.swift`
+
+This task is large (~200 lines) and UI-heavy. It's not TDD'd — it's verified manually with `xcodebuildmcp describe-ui` and screenshot capture.
+
+- [ ] **Step 1: Implement `OverlayPanel`**
+
+`ScreenshotButton/UI/OverlayPanel.swift`:
+```swift
+import AppKit
+
+final class OverlayPanel: NSPanel {
+    init(screen: NSScreen) {
+        super.init(
+            contentRect: screen.frame,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        isFloatingPanel = true
+        level = .screenSaver
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        backgroundColor = .clear
+        isOpaque = false
+        hasShadow = false
+        ignoresMouseEvents = false
+        acceptsMouseMovedEvents = true
+        hidesOnDeactivate = false
+        setFrame(screen.frame, display: true)
+    }
+
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+}
+```
+
+- [ ] **Step 2: Implement `OverlayView`**
+
+`ScreenshotButton/UI/OverlayView.swift`:
+```swift
+import AppKit
+import CoreGraphics
+
+final class OverlayView: NSView {
+    weak var manager: OverlayManager?
+    let screen: NSScreen
+
+    private var dragStart: CGPoint?
+    private var dragEnd: CGPoint?
+    private var hoveredFrame: CGRect?
+
+    init(screen: NSScreen) {
+        self.screen = screen
+        super.init(frame: screen.frame)
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.black.withAlphaComponent(0.05).cgColor
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var acceptsFirstResponder: Bool { true }
+    override func becomeFirstResponder() -> Bool { true }
+
+    override func updateTrackingAreas() {
+        trackingAreas.forEach { removeTrackingArea($0) }
+        let ta = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self, userInfo: nil
+        )
+        addTrackingArea(ta)
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        let screenPoint = screenPoint(for: event)
+        manager?.didMove(to: screenPoint, on: self)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        dragStart = screenPoint(for: event)
+        dragEnd = dragStart
+        if manager?.mode == .window {
+            manager?.didClickWindow(at: screenPoint(for: event), on: self)
+        }
+        setNeedsDisplay(bounds)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        dragEnd = screenPoint(for: event)
+        setNeedsDisplay(bounds)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if manager?.mode == .area, let start = dragStart, let end = dragEnd {
+            manager?.didCompleteArea(from: start, to: end, on: self)
+        }
+        dragStart = nil
+        dragEnd = nil
+        setNeedsDisplay(bounds)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        switch event.keyCode {
+        case 53:  manager?.didPressEscape()           // Esc
+        case 49:  manager?.didPressSpace()            // Space
+        default:  super.keyDown(with: event)
+        }
+    }
+
+    func updateHoveredFrame(_ frame: CGRect?) {
+        hoveredFrame = frame
+        setNeedsDisplay(bounds)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor.clear.setFill()
+        dirtyRect.fill()
+
+        guard let manager else { return }
+
+        switch manager.mode {
+        case .window:
+            if let frame = hoveredFrame {
+                let local = convertFromScreen(frame)
+                let path = NSBezierPath(roundedRect: local, xRadius: 4, yRadius: 4)
+                NSColor.controlAccentColor.withAlphaComponent(0.15).setFill()
+                path.fill()
+                NSColor.controlAccentColor.setStroke()
+                path.lineWidth = 2
+                path.stroke()
+            }
+        case .area:
+            if let start = dragStart, let end = dragEnd {
+                let rect = AreaGeometry.rectangle(from: start, to: end)
+                let local = convertFromScreen(rect)
+                NSColor.controlAccentColor.withAlphaComponent(0.15).setFill()
+                local.fill()
+                NSColor.controlAccentColor.setStroke()
+                let path = NSBezierPath(rect: local)
+                path.lineWidth = 1
+                path.stroke()
+            }
+        }
+    }
+
+    private func screenPoint(for event: NSEvent) -> CGPoint {
+        let windowPoint = event.locationInWindow
+        let viewPoint = convert(windowPoint, from: nil)
+        return convertToScreen(viewPoint)
+    }
+
+    private func convertToScreen(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: screen.frame.origin.x + point.x, y: screen.frame.origin.y + point.y)
+    }
+
+    private func convertFromScreen(_ rect: CGRect) -> CGRect {
+        CGRect(
+            x: rect.origin.x - screen.frame.origin.x,
+            y: rect.origin.y - screen.frame.origin.y,
+            width: rect.width, height: rect.height
+        )
+    }
+}
+```
+
+- [ ] **Step 3: Implement `OverlayManager`**
+
+`ScreenshotButton/UI/OverlayManager.swift`:
+```swift
+import AppKit
+import CoreGraphics
+
+@MainActor
+final class OverlayManager {
+    let controller: CaptureController
+    private(set) var panels: [OverlayPanel] = []
+    private var views: [OverlayView] = []
+    private var windows: [CapturedWindow] = []
+
+    var mode: CaptureMode { controller.session.mode }
+
+    init(controller: CaptureController) {
+        self.controller = controller
+    }
+
+    func present() async {
+        guard controller.session.state == .capturing else { return }
+        windows = (try? await controller.enumerateWindows()) ?? []
+        panels = NSScreen.screens.map(OverlayPanel.init(screen:))
+        views = panels.enumerated().map { (idx, panel) in
+            let v = OverlayView(screen: NSScreen.screens[idx])
+            v.manager = self
+            panel.contentView = v
+            panel.makeKeyAndOrderFront(nil)
+            return v
+        }
+    }
+
+    func didMove(to point: CGPoint, on view: OverlayView) {
+        guard mode == .window else {
+            views.forEach { $0.updateHoveredFrame(nil) }
+            return
+        }
+        let topmost = HitTesting.topmost(at: point, in: windows)
+        views.forEach { $0.updateHoveredFrame(topmost?.frame) }
+    }
+
+    func didClickWindow(at point: CGPoint, on view: OverlayView) {
+        guard let target = HitTesting.topmost(at: point, in: windows) else {
+            dismiss()
+            controller.cancel()
+            return
+        }
+        dismiss()
+        Task { @MainActor in
+            try? await controller.commitWindow(target)
+        }
+    }
+
+    func didCompleteArea(from start: CGPoint, to end: CGPoint, on view: OverlayView) {
+        let rect = AreaGeometry.rectangle(from: start, to: end)
+        if AreaGeometry.isCancel(rect) {
+            dismiss()
+            controller.cancel()
+            return
+        }
+        let displayID = view.screen.displayID
+        let localRect = CGRect(
+            x: rect.origin.x - view.screen.frame.origin.x,
+            y: rect.origin.y - view.screen.frame.origin.y,
+            width: rect.width, height: rect.height
+        )
+        dismiss()
+        Task { @MainActor in
+            try? await controller.commitArea(localRect, displayID: displayID)
+        }
+    }
+
+    func didPressEscape() {
+        dismiss()
+        controller.cancel()
+    }
+
+    func didPressSpace() {
+        controller.session.toggle()
+        views.forEach { $0.updateHoveredFrame(nil) }
+        views.forEach { $0.setNeedsDisplay($0.bounds) }
+    }
+
+    private func dismiss() {
+        panels.forEach { $0.orderOut(nil) }
+        panels.removeAll()
+        views.removeAll()
+        windows.removeAll()
+    }
+}
+
+private extension NSScreen {
+    var displayID: CGDirectDisplayID {
+        (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
+    }
+}
+```
+
+- [ ] **Step 4: Wire `OverlayManager` into the app**
+
+Modify `ScreenshotButtonApp.swift` to observe `CaptureController` state transitions and present/dismiss overlays:
+
+```swift
+import SwiftUI
+
+@main
+struct ScreenshotButtonApp: App {
+    @State private var controller: CaptureController = .live()
+    @State private var overlays: OverlayManager?
+    private let launchAtLogin = LaunchAtLogin()
+
+    var body: some Scene {
+        MenuBarExtra {
+            MenuView(controller: controller, launchAtLogin: launchAtLogin)
+                .onChange(of: controller.session.state) { _, newState in
+                    if newState == .capturing && overlays == nil {
+                        let manager = OverlayManager(controller: controller)
+                        overlays = manager
+                        Task { await manager.present() }
+                    } else if newState == .idle {
+                        overlays = nil
+                    }
+                }
+        } label: {
+            Image(systemName: "camera").accessibilityLabel("ScreenshotButton")
+        }
+    }
+}
+```
+
+- [ ] **Step 5: Build and do an end-to-end smoke test**
+
+```bash
+xcodebuild build -project ScreenshotButton.xcodeproj -scheme ScreenshotButton \
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO -quiet
+```
+
+Run the app. When first clicking a capture item, macOS will prompt for Screen Recording permission. Grant it. macOS restarts the app. Re-open the menu, pick "Window to File", hover over a window, click. Expected: Preview opens with a PNG of that window. Pick "Area to Clipboard", drag a rectangle — paste into a text doc; the screenshot should appear. Press Esc mid-capture to cancel. Press Space to toggle mode.
+
+Document any issues in `TODO.md` before committing.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add ScreenshotButton ScreenshotButton.xcodeproj
+git commit -m "feat: add per-screen overlay and end-to-end capture flow"
+```
+
+---
+
+## Task 21: Permission-denied onboarding + notification-based errors
+
+**Files:**
+- Create: `ScreenshotButton/UI/PermissionWindow.swift`
+- Create: `ScreenshotButton/Services/Notifier.swift`
+- Modify: `ScreenshotButton/Session/CaptureController.swift` (catch `SCStreamError` and forward)
+- Modify: `ScreenshotButton/ScreenshotButtonApp.swift` (show permission window when needed)
+
+- [ ] **Step 1: Implement `Notifier`**
+
+`ScreenshotButton/Services/Notifier.swift`:
+```swift
+import Foundation
+import UserNotifications
+
+@MainActor
+final class Notifier {
+    func post(title: String, body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        let req = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(req)
+    }
+}
+```
+
+- [ ] **Step 2: Implement `PermissionWindow`**
+
+`ScreenshotButton/UI/PermissionWindow.swift`:
+```swift
+import SwiftUI
+import AppKit
+
+struct PermissionWindow: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Screen Recording Access Required")
+                .font(.title2).bold()
+            Text("ScreenshotButton needs Screen Recording permission in System Settings to capture windows and regions.")
+                .multilineTextAlignment(.center)
+            HStack {
+                Button("Quit") { NSApp.terminate(nil) }
+                Button("Open Settings") {
+                    let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+                    NSWorkspace.shared.open(url)
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .frame(minWidth: 420)
+    }
+}
+```
+
+- [ ] **Step 3: Make `CaptureController` surface permission errors**
+
+Add to `CaptureController`:
+```swift
+import ScreenCaptureKit
+
+extension CaptureController {
+    func enumerateWindowsOrHandle(notifier: Notifier, onPermissionDenied: () -> Void) async -> [CapturedWindow]? {
+        do {
+            return try await enumerateWindows()
+        } catch let error as SCStreamError where error.code == .userDeclined {
+            onPermissionDenied()
+            return nil
+        } catch {
+            notifier.post(title: "Capture failed", body: "Please try again.")
+            return nil
+        }
+    }
+}
+```
+
+Update `OverlayManager.present()` to use the new helper.
+
+- [ ] **Step 4: Wire the permission window into the app**
+
+In `ScreenshotButtonApp.swift`:
+```swift
+import SwiftUI
+
+@main
+struct ScreenshotButtonApp: App {
+    @State private var controller: CaptureController = .live()
+    @State private var overlays: OverlayManager?
+    @State private var showPermissionWindow = false
+    private let launchAtLogin = LaunchAtLogin()
+    private let notifier = Notifier()
+
+    var body: some Scene {
+        MenuBarExtra {
+            MenuView(controller: controller, launchAtLogin: launchAtLogin)
+                .onChange(of: controller.session.state) { _, newState in
+                    handleStateChange(newState)
+                }
+        } label: {
+            Image(systemName: "camera").accessibilityLabel("ScreenshotButton")
+        }
+
+        Window("Screen Recording", id: "permission") {
+            PermissionWindow()
+        }
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
+    }
+
+    @MainActor
+    private func handleStateChange(_ newState: CaptureSession.State) {
+        if newState == .capturing && overlays == nil {
+            let manager = OverlayManager(controller: controller)
+            overlays = manager
+            Task { await presentOverlays(manager) }
+        } else if newState == .idle {
+            overlays = nil
+        }
+    }
+
+    @MainActor
+    private func presentOverlays(_ manager: OverlayManager) async {
+        let windows = await controller.enumerateWindowsOrHandle(notifier: notifier) {
+            NSApp.activate(ignoringOtherApps: true)
+            // Open permission window via environment action
+        }
+        if windows == nil {
+            overlays = nil
+            return
+        }
+        await manager.present()
+    }
+}
+```
+
+This step is the one place where the plan acknowledges an implementation-time judgment call: SwiftUI's `openWindow` environment action can only be read inside a view. The simplest path is to have `MenuView` receive an `@Environment(\.openWindow)` and pass a closure to `CaptureController` for opening the permission window. If the implementing agent finds a cleaner way (e.g., observing a published `@State var` on `ScreenshotButtonApp`), that is fine — both approaches satisfy the user-visible behavior described in the design.
+
+- [ ] **Step 5: Build**
+
+```bash
+xcodebuild build -project ScreenshotButton.xcodeproj -scheme ScreenshotButton \
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO -quiet
+```
+
+- [ ] **Step 6: Manual verification**
+
+On a test Mac, revoke Screen Recording permission and click a capture item. Expected: permission window appears with working Quit and Open Settings buttons. Grant the permission from Settings, restart the app, verify capture now works.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add ScreenshotButton ScreenshotButton.xcodeproj
+git commit -m "feat: add permission onboarding window and notification-based errors"
+```
+
+---
+
+## Task 22: Temp-dir cleanup on launch
+
+**Files:**
+- Modify: `ScreenshotButton/ScreenshotButtonApp.swift`
+
+- [ ] **Step 1: Add a launch hook**
+
+In `ScreenshotButtonApp.init()` or the `MenuBarExtra` `.onAppear`:
+
+```swift
+init() {
+    let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent(FileSink.folderName, isDirectory: true)
+    TempCleanup.prune(directory: dir, olderThan: 60 * 60 * 24)
+}
+```
+
+- [ ] **Step 2: Build**
+
+```bash
+xcodebuild build -project ScreenshotButton.xcodeproj -scheme ScreenshotButton \
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO -quiet
+```
+Expected: `** BUILD SUCCEEDED **`.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add ScreenshotButton ScreenshotButton.xcodeproj
+git commit -m "feat: prune stale temp screenshots on launch"
+```
+
+---
+
+## Task 23: Seed the Homebrew cask
+
+**Files:**
+- Create: `Casks/screenshotbutton.rb`
+
+- [ ] **Step 1: Write cask seed**
+
+```ruby
+cask "screenshotbutton" do
+  version "0.0.0"
+  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+
+  url "https://github.com/greglamb/macos-screenshot-button/releases/download/v#{version}/ScreenshotButton-#{version}.dmg"
+  name "ScreenshotButton"
+  desc "Menu bar app for window and area screenshots to file or clipboard"
+  homepage "https://github.com/greglamb/macos-screenshot-button"
+
+  depends_on macos: ">= :sonoma"
+
+  app "ScreenshotButton.app"
+
+  zap trash: [
+    "~/Library/Preferences/dev.greglamb.ScreenshotButton.plist",
+  ]
+end
+```
+
+The `0.0.0` + zeros are rewritten by the release workflow on the first tag push.
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add Casks/screenshotbutton.rb
+git commit -m "chore: seed Homebrew cask for screenshotbutton"
+```
+
+---
+
+## Task 24: Release workflow
+
+**Files:**
+- Create: `.github/workflows/release.yml`
+
+- [ ] **Step 1: Write `release.yml`**
+
+```yaml
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Install signing certificate
+        env:
+          CERTIFICATE_P12: ${{ secrets.CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          CERT_PATH=$RUNNER_TEMP/certificate.p12
+          echo "$CERTIFICATE_P12" | base64 --decode > "$CERT_PATH"
+          security import "$CERT_PATH" \
+            -P "$CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Build Release
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcodebuild \
+            -project ScreenshotButton.xcodeproj \
+            -scheme ScreenshotButton \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            ENABLE_HARDENED_RUNTIME=YES \
+            CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
+            OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime" \
+            MARKETING_VERSION=${{ steps.version.outputs.version }} \
+            build
+
+      - name: Notarize app
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          APP_PATH="build/Build/Products/Release/ScreenshotButton.app"
+          ditto -c -k --keepParent "$APP_PATH" ScreenshotButton.zip
+
+          SUBMISSION_ID=$(xcrun notarytool submit ScreenshotButton.zip \
+            --apple-id "$APPLE_ID" \
+            --password "$APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --output-format json | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+          STATUS=$(xcrun notarytool info "$SUBMISSION_ID" \
+            --apple-id "$APPLE_ID" \
+            --password "$APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --output-format json | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])")
+
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "::error::Notarization failed with status: $STATUS"
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APP_SPECIFIC_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID"
+            exit 1
+          fi
+
+          xcrun stapler staple "$APP_PATH"
+
+      - name: Create DMG
+        id: dmg
+        run: |
+          APP_PATH="build/Build/Products/Release/ScreenshotButton.app"
+          VERSION=${{ steps.version.outputs.version }}
+          DMG_NAME="ScreenshotButton-${VERSION}.dmg"
+
+          mkdir -p dmg_contents
+          cp -R "$APP_PATH" dmg_contents/
+          ln -s /Applications dmg_contents/Applications
+
+          hdiutil create \
+            -volname "ScreenshotButton" \
+            -srcfolder dmg_contents \
+            -ov -format UDZO \
+            "$DMG_NAME"
+
+          codesign --force --sign "Developer ID Application" --timestamp "$DMG_NAME"
+
+          DMG_SHA=$(shasum -a 256 "$DMG_NAME" | awk '{print $1}')
+          echo "dmg_name=$DMG_NAME" >> "$GITHUB_OUTPUT"
+          echo "dmg_sha=$DMG_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.dmg.outputs.dmg_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Update cask with pinned SHA
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DMG_SHA: ${{ steps.dmg.outputs.dmg_sha }}
+          CASK_PATH: Casks/screenshotbutton.rb
+        run: |
+          sed -i.bak -E "s/^(\s*version) \"[^\"]*\"/\1 \"${VERSION}\"/" "$CASK_PATH"
+          sed -i.bak -E "s/^(\s*sha256) \"[^\"]*\"/\1 \"${DMG_SHA}\"/" "$CASK_PATH"
+          rm -f "${CASK_PATH}.bak"
+
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name  "github-actions[bot]"
+          git add "$CASK_PATH"
+          git commit -m "chore(cask): bump screenshotbutton to v${VERSION}"
+          git push origin HEAD:main
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
+```
+
+- [ ] **Step 2: Sanity-lint**
+
+```bash
+python3 -c "import yaml; yaml.safe_load(open('.github/workflows/release.yml'))"
+```
+Expected: no output (parse success).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add .github/workflows/release.yml
+git commit -m "ci: add release workflow with signing, notarization, and cask bump"
+```
+
+---
+
+## Task 25: README install instructions + first release rehearsal
+
+**Files:**
+- Modify: `README.md`
+- Update: `CHANGELOG.md` (first real entry), `TODO.md` (deferred work)
+
+- [ ] **Step 1: Rewrite `README.md`**
+
+```markdown
+# ScreenshotButton
+
+A macOS menu bar app for capturing windows or drawn regions to a PNG file (opened in Preview) or directly to the clipboard.
+
+## Install
+
+```
+brew tap greglamb/macos-screenshot-button https://github.com/greglamb/macos-screenshot-button
+brew install --cask screenshotbutton
+```
+
+## Use
+
+1. Click the camera icon in the menu bar.
+2. Choose **Window to File / Clipboard** or **Area to File / Clipboard**.
+3. In window mode, hover a window and click. In area mode, drag a rectangle.
+4. Press **Space** to swap mode mid-capture. Press **Esc** to cancel.
+
+File captures open in Preview. Clipboard captures are pasted into any app that accepts images.
+
+## Requirements
+
+- macOS 14 Sonoma or later
+- Screen Recording permission (prompted on first capture)
+
+## License
+
+MIT — see LICENSE.
+```
+
+- [ ] **Step 2: Populate `CHANGELOG.md`**
+
+```markdown
+# Changelog
+
+## [Unreleased]
+
+### Added
+- Menu bar app with four capture modes: Window/Area to File/Clipboard.
+- Space key toggles mode mid-capture; Esc cancels.
+- File captures open in Preview; clipboard captures copy to system pasteboard.
+- Autolaunch toggle backed by SMAppService.
+- Signed and notarized distribution via Homebrew cask.
+```
+
+- [ ] **Step 3: Populate `TODO.md` with known deferrals**
+
+```markdown
+# TODO
+
+## Deferred from v1
+
+- Global hotkeys for the four capture modes (scope reduction — menu-only is v1).
+- Cursor inclusion option (off by default; no UI).
+- Sparkle auto-updates (brew handles updates for now).
+- Configurable save location (v1 writes to temp and hands to Preview).
+- On-screen mode indicator during capture (relies on cursor/highlight cues).
+
+## Known limitations
+
+- Drop shadow is not composited on window captures.
+- Permission window UX relies on macOS restarting the app after TCC grant.
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add README.md CHANGELOG.md TODO.md
+git commit -m "docs: add README, changelog entry, and deferred-work list"
+```
+
+- [ ] **Step 5: Rehearse the first release (optional but recommended)**
+
+On a branch that is *not* `main`:
+1. Push a lightweight tag `v0.1.0-rc1` to `main`.
+2. Confirm `release.yml` runs, produces a DMG, creates the release, and rewrites `Casks/screenshotbutton.rb`.
+3. On a clean Mac: `brew tap greglamb/macos-screenshot-button ...; brew install --cask screenshotbutton`. App should launch with no Gatekeeper warnings.
+4. `brew uninstall --zap --cask screenshotbutton`. Confirm the prefs file is removed.
+
+If any step fails, don't tag `v1.0.0`. File issues against the specific failure mode in the convention doc.
+
+---
+
+## Final checklist
+
+Before calling v1 done:
+
+- [ ] All 25 tasks' commits are on `feature/initial-implementation`.
+- [ ] `xcodebuild test` passes locally and in CI.
+- [ ] Coverage ≥ 75% on the services/session layers.
+- [ ] Manual QA passes (the permission flow, all four capture modes, Space/Esc, multi-display if you have one).
+- [ ] Release rehearsal succeeded.
+- [ ] Merge `feature/initial-implementation` → `main`. Tag `v1.0.0`. Let CI do the rest.
