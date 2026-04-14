@@ -60,3 +60,9 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+CLAUDE.local.md
+.worktrees/
+_reference/
+_gitignored/
+.DS_Store
