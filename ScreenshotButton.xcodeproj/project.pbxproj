@@ -16,7 +16,9 @@
 		60B7FBF83B76EAEF47E9D4D1 /* ScreenshotButtonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D46CCA27BDB846321CDA63 /* ScreenshotButtonApp.swift */; };
 		957C8C7B8486A8BC8B64FB4B /* CapturedWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA9A09E94780AA9E2B55A99 /* CapturedWindow.swift */; };
 		BCE9374E1274B69F1A292895 /* HitTesting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 062F30A6F6F15DED7F730A32 /* HitTesting.swift */; };
+		BF800960B447DBA0A4E6D679 /* CaptureSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA51C029C8887895DCD69BD4 /* CaptureSessionTests.swift */; };
 		D976C4E1F7ED6F412FE081D3 /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 900AF40AA1DBB5799808A929 /* SmokeTests.swift */; };
+		E356E959A73A34B717948CBB /* CaptureSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10440AE79AA7B34D2A0F2127 /* CaptureSession.swift */; };
 		E77529145AA8F2D3E33F62BB /* AreaGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A98062004FE602BBB1ED439 /* AreaGeometryTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -32,12 +34,14 @@
 
 /* Begin PBXFileReference section */
 		062F30A6F6F15DED7F730A32 /* HitTesting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HitTesting.swift; sourceTree = "<group>"; };
+		10440AE79AA7B34D2A0F2127 /* CaptureSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSession.swift; sourceTree = "<group>"; };
 		7A98062004FE602BBB1ED439 /* AreaGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AreaGeometryTests.swift; sourceTree = "<group>"; };
 		7E555FA3FC9F9A99F4F31FC3 /* Tags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tags.swift; sourceTree = "<group>"; };
 		900AF40AA1DBB5799808A929 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		92F0C88BBA392EC118F2AC10 /* ScreenshotButton.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScreenshotButton.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9DFE0185078113279B9943D8 /* CapturedWindowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturedWindowTests.swift; sourceTree = "<group>"; };
 		9E0623479B701CF274D804BE /* AreaGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AreaGeometry.swift; sourceTree = "<group>"; };
+		AA51C029C8887895DCD69BD4 /* CaptureSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionTests.swift; sourceTree = "<group>"; };
 		AAA9A09E94780AA9E2B55A99 /* CapturedWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturedWindow.swift; sourceTree = "<group>"; };
 		C1C5C2FFB71C997997336FFC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D9F35FB026936026D7A40CBD /* ScreenshotButtonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenshotButtonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -55,6 +59,22 @@
 				CD14209A5AED125C5CE5E9A2 /* ScreenshotButtonTests */,
 				A48C5228992FF787E62835A5 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		1F48A35E4E41F4D1E93908B6 /* Session */ = {
+			isa = PBXGroup;
+			children = (
+				AA51C029C8887895DCD69BD4 /* CaptureSessionTests.swift */,
+			);
+			path = Session;
+			sourceTree = "<group>";
+		};
+		2CD2C717CCB29AAB3E056D28 /* Session */ = {
+			isa = PBXGroup;
+			children = (
+				10440AE79AA7B34D2A0F2127 /* CaptureSession.swift */,
+			);
+			path = Session;
 			sourceTree = "<group>";
 		};
 		6427C36797D719EAEDA50FFD /* Core */ = {
@@ -93,6 +113,7 @@
 			children = (
 				900AF40AA1DBB5799808A929 /* SmokeTests.swift */,
 				C9A574CB7B4D0EECD86C791D /* Core */,
+				1F48A35E4E41F4D1E93908B6 /* Session */,
 				EA44B790C190C55EEFFC796B /* Support */,
 			);
 			path = ScreenshotButtonTests;
@@ -104,6 +125,7 @@
 				C1C5C2FFB71C997997336FFC /* Info.plist */,
 				F6D46CCA27BDB846321CDA63 /* ScreenshotButtonApp.swift */,
 				6427C36797D719EAEDA50FFD /* Core */,
+				2CD2C717CCB29AAB3E056D28 /* Session */,
 			);
 			path = ScreenshotButton;
 			sourceTree = "<group>";
@@ -195,6 +217,7 @@
 			files = (
 				5ED2A22225952E2AA88C84C5 /* AreaGeometry.swift in Sources */,
 				29756FAE89C56F7606CD48D9 /* CaptureMode.swift in Sources */,
+				E356E959A73A34B717948CBB /* CaptureSession.swift in Sources */,
 				957C8C7B8486A8BC8B64FB4B /* CapturedWindow.swift in Sources */,
 				BCE9374E1274B69F1A292895 /* HitTesting.swift in Sources */,
 				60B7FBF83B76EAEF47E9D4D1 /* ScreenshotButtonApp.swift in Sources */,
@@ -207,6 +230,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E77529145AA8F2D3E33F62BB /* AreaGeometryTests.swift in Sources */,
+				BF800960B447DBA0A4E6D679 /* CaptureSessionTests.swift in Sources */,
 				3ECC38828F3FD1FBC8B446B2 /* CapturedWindowTests.swift in Sources */,
 				2B89A5235E04E247274965D5 /* HitTestingTests.swift in Sources */,
 				D976C4E1F7ED6F412FE081D3 /* SmokeTests.swift in Sources */,
