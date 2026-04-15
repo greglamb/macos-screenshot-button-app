@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import ScreenCaptureKit
 
 @MainActor
 final class OverlayManager {
@@ -70,6 +71,9 @@ final class OverlayManager {
                 try await self.controller.commitWindow(target)
             } catch is CancellationError {
                 self.controller.cancel()
+            } catch let error as SCStreamError where error.code == .userDeclined {
+                self.notifier.postPermissionDenied()
+                self.controller.cancel()
             } catch {
                 self.notifier.post(title: "Capture failed", body: "Please try again.")
                 self.controller.cancel()
@@ -95,6 +99,9 @@ final class OverlayManager {
             do {
                 try await self.controller.commitArea(localRect, displayID: displayID)
             } catch is CancellationError {
+                self.controller.cancel()
+            } catch let error as SCStreamError where error.code == .userDeclined {
+                self.notifier.postPermissionDenied()
                 self.controller.cancel()
             } catch {
                 self.notifier.post(title: "Capture failed", body: "Please try again.")

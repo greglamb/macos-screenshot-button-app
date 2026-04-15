@@ -21,13 +21,14 @@ struct ScreenshotButtonApp: App {
         } label: {
             Image(systemName: "viewfinder")
                 .accessibilityLabel("ScreenshotButton")
-                .task {
-                    let folderName = FileSink.folderName
-                    await Task.detached(priority: .background) {
-                        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
-                            .appendingPathComponent(folderName, isDirectory: true)
-                        TempCleanup.prune(directory: dir, olderThan: 60 * 60 * 24)
-                    }.value
+                .task(priority: .background) {
+                    // Idempotent cleanup of stale temp PNGs. Uses synchronous
+                    // FileManager calls — `.task(priority:)` already gives us a
+                    // background-priority async context; no nested unstructured
+                    // Task needed.
+                    let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+                        .appendingPathComponent(FileSink.folderName, isDirectory: true)
+                    TempCleanup.prune(directory: dir, olderThan: 60 * 60 * 24)
                 }
         }
     }

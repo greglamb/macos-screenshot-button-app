@@ -123,20 +123,24 @@ jobs:
           echo "dmg_name=$DMG_NAME" >> "$GITHUB_OUTPUT"
           echo "dmg_sha=$DMG_SHA" >> "$GITHUB_OUTPUT"
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ steps.dmg.outputs.dmg_name }}
-          generate_release_notes: true
-          draft: false
-          prerelease: false
-
-      - name: Update cask with pinned SHA
+      # Bump the cask BEFORE creating the GitHub release. If the bump fails (e.g. a
+      # concurrent push to main), we abort and never publish a release that points
+      # at a cask with a 0.0.0/zero-SHA. Users stay on the prior release until we fix
+      # the conflict by hand and re-tag.
+      - name: Update cask with pinned SHA and push to main
         env:
           VERSION: ${{ steps.version.outputs.version }}
           DMG_SHA: ${{ steps.dmg.outputs.dmg_sha }}
           CASK_PATH: Casks/screenshotbutton.rb
         run: |
+          # Save the DMG so it survives the branch switch (it's outside the work tree).
+          DMG_TMP="$RUNNER_TEMP/${{ steps.dmg.outputs.dmg_name }}"
+          cp "${{ steps.dmg.outputs.dmg_name }}" "$DMG_TMP"
+
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+
           sed -i.bak -E "s/^(\s*version) \"[^\"]*\"/\1 \"${VERSION}\"/" "$CASK_PATH"
           sed -i.bak -E "s/^(\s*sha256) \"[^\"]*\"/\1 \"${DMG_SHA}\"/" "$CASK_PATH"
           rm -f "${CASK_PATH}.bak"
@@ -145,7 +149,18 @@ jobs:
           git config user.name  "github-actions[bot]"
           git add "$CASK_PATH"
           git commit -m "chore(cask): bump screenshotbutton to v${VERSION}"
-          git push origin HEAD:main
+          git push origin main
+
+          # Restore the DMG file path the next step expects.
+          cp "$DMG_TMP" "${{ steps.dmg.outputs.dmg_name }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.dmg.outputs.dmg_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
 
       - name: Cleanup keychain
         if: always()
