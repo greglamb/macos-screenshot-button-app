@@ -11,7 +11,7 @@ All notable user-facing changes to ScreenshotButton are documented here.
 - **Space** key toggles between window and area mode mid-capture; **Esc** cancels.
 - File captures save a PNG to a temp folder and open it in Preview.
 - Clipboard captures copy the image to the system pasteboard as `NSImage`.
-- **Autolaunch** toggle (backed by `SMAppService`) for launch-at-login.
+- **Launch at Login** toggle (backed by `SMAppService`).
 - Notification-based handling for Screen Recording permission denial, with an "Open Settings" action.
 - Stale temp screenshots older than 24h are pruned automatically on app launch.
 - Signed and notarized distribution via Homebrew cask hosted in this repo.
@@ -33,4 +33,3 @@ All notable user-facing changes to ScreenshotButton are documented here.
   brew install --cask screenshotbutton
   ```
   The Xcode target, bundle identifier (`dev.greglamb.ScreenshotButton`), and DMG filename are unchanged.
-- Menu label changed from "Autolaunch" to "Launch at Login" to match macOS System Settings wording.
