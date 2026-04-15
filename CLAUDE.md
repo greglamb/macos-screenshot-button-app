@@ -138,3 +138,32 @@ Automatically runs `episodic-memory sync` before the vibeplan command executes.
 - Update both files as part of every PR/commit that changes behavior (enforced by `changelog-todo-reminder` hook)
 - **Deferred work rule**: Any task identified during implementation that is explicitly out of scope or deferred MUST be added to TODO.md before the work is considered complete. This includes: scope reductions, "fix later" decisions, discovered tech debt, and follow-up improvements. Never defer work silently.
 <!-- goodvibes-workflow:end -->
+
+<!-- swift-dev:managed:suggest-skills -->
+
+## Suggest these manual skills when relevant
+
+The user won't remember these exist. Proactively suggest (don't auto-run) when the context fits:
+
+- `/swift-dev:build-fix` — when a build fails and the user wants an autonomous compile→fix→rebuild loop
+- `/swift-dev:verify-ui` — after any UI change, before declaring it done (builds, screenshots, reads a11y tree)
+- `/swift-dev:health-check` — before a release, PR, or when the user asks "is this ready to ship?"
+- `swift-reviewer` subagent — when the user is about to commit or wants review; invoke via `superpowers:requesting-code-review` or directly with the Agent tool
+
+<!-- /swift-dev:managed:suggest-skills -->
+
+<!-- swift-dev:managed:consult-skills -->
+
+## Swift skills to consult during brainstorming, planning, and implementation
+
+Axiom is forced by its own session-start hook. These are not — check them explicitly when the domain matches:
+
+- **Hudson Pro skills** — SwiftUI, SwiftData, Concurrency, Testing patterns and anti-patterns
+- **Swift Architecture skill** — module layout, dependency direction, testability
+- **Writing for Interfaces skill** — UX copy review, microcopy, button labels, error messages
+
+During `superpowers:brainstorming`: when the user's idea touches any of these domains, surface relevant skills before continuing the Socratic loop.
+During `superpowers:writing-plans`: consult these skills when specifying tasks in the affected domain.
+During implementation: reference the relevant skill before writing code in that domain.
+
+<!-- /swift-dev:managed:consult-skills -->
