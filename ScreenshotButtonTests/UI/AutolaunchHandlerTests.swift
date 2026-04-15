@@ -8,9 +8,7 @@ private struct LaunchError: Error, Equatable {}
 @Suite("AutolaunchToggleHandler")
 struct AutolaunchHandlerTests {
     private func makeDefaults() -> UserDefaults {
-        let defaults = UserDefaults(suiteName: "AutolaunchHandlerTests-\(UUID())")!
-        defaults.removePersistentDomain(forName: defaults.dictionaryRepresentation().description)
-        return defaults
+        UserDefaults(suiteName: "AutolaunchHandlerTests-\(UUID())")!
     }
 
     @Test("Success returns the new value and posts nothing")
@@ -45,5 +43,21 @@ struct AutolaunchHandlerTests {
                 body: "Try again in a moment. If the problem persists, open System Settings → General → Login Items."
             )
         ])
+    }
+
+    @Test("Disabling on success returns false and posts nothing")
+    func disableSuccessReturnsFalse() {
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: LaunchAtLogin.defaultsKey)  // seed: currently enabled
+        let api = FakeSMAppServiceAPI(initialStatus: .enabled)
+        let la = LaunchAtLogin(api: api, defaults: defaults)
+        let notifier = FakeNotifying()
+        let handler = AutolaunchToggleHandler(launchAtLogin: la, notifier: notifier)
+
+        let result = handler.setEnabled(false)
+
+        #expect(result == false)
+        #expect(api.unregisterCalls == 1)
+        #expect(notifier.posts.isEmpty)
     }
 }
