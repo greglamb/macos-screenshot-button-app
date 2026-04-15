@@ -2,17 +2,24 @@ import SwiftUI
 
 @main
 struct ScreenshotButtonApp: App {
-    @State private var controller: CaptureController = .live()
+    @State private var controller: CaptureController
+    @State private var overlays: OverlayManager
     private let launchAtLogin = LaunchAtLogin()
+
+    init() {
+        let notifier = Notifier()
+        let controller = CaptureController.live()
+        _controller = State(initialValue: controller)
+        _overlays = State(initialValue: OverlayManager(controller: controller, notifier: notifier))
+    }
 
     var body: some Scene {
         MenuBarExtra {
             MenuView(launchAtLogin: launchAtLogin) { mode, sink in
-                controller.start(mode: mode, sink: sink)
+                overlays.begin(mode: mode, sink: sink)
             }
         } label: {
-            Image(systemName: "viewfinder")
-                .accessibilityLabel("ScreenshotButton")
+            Image(systemName: "viewfinder").accessibilityLabel("ScreenshotButton")
         }
     }
 }
