@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# bin/setup — bootstrap macOS app dev environment.
+set -euo pipefail
+
+if ! command -v xcodegen >/dev/null 2>&1; then
+  echo "==> Installing XcodeGen"
+  if command -v brew >/dev/null 2>&1; then
+    brew install xcodegen
+  else
+    echo "Homebrew is not installed. Install Homebrew first: https://brew.sh"
+    exit 1
+  fi
+fi
+
+echo "==> Generating Xcode project from Project.yml"
+xcodegen generate
+
+echo "==> Done."
+echo "Build:  xcodebuild build -project ScreenshotButton.xcodeproj -scheme ScreenshotButton CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO -quiet"
+echo "Test:   xcodebuild test  -project ScreenshotButton.xcodeproj -scheme ScreenshotButton -destination 'platform=macOS' CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO -quiet"

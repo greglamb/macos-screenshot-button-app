@@ -1,0 +1,58 @@
+name: ScreenshotButton
+
+options:
+  bundleIdPrefix: dev.greglamb
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+
+targets:
+  ScreenshotButton:
+    type: application
+    platform: macOS
+    sources:
+      - path: ScreenshotButton
+    info:
+      path: ScreenshotButton/Info.plist
+      properties:
+        LSUIElement: true
+        LSMinimumSystemVersion: "14.0"
+        NSScreenCaptureUsageDescription: "ScreenshotButton needs screen recording access to capture windows and regions."
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.greglamb.ScreenshotButton
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: NO
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+    scheme:
+      testTargets:
+        - ScreenshotButtonTests
+      gatherCoverageData: true
+      coverageTargets:
+        - ScreenshotButton
+
+  ScreenshotButtonTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: ScreenshotButtonTests
+    dependencies:
+      - target: ScreenshotButton
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.greglamb.ScreenshotButtonTests
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        GENERATE_INFOPLIST_FILE: YES
