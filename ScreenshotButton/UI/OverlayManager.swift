@@ -45,8 +45,7 @@ final class OverlayManager {
         windows = fetched
         panels = NSScreen.screens.map(OverlayPanel.init(screen:))
         views = panels.enumerated().map { (idx, panel) in
-            let v = OverlayView(screen: NSScreen.screens[idx])
-            v.manager = self
+            let v = OverlayView(screen: NSScreen.screens[idx], manager: self)
             panel.contentView = v
             panel.makeKeyAndOrderFront(nil)
             return v
@@ -121,6 +120,7 @@ final class OverlayManager {
         controller.session.toggle()
         views.forEach { $0.updateHoveredFrame(nil) }
         views.forEach { $0.setNeedsDisplay($0.bounds) }
+        views.forEach { $0.refreshCursor() }
     }
 
     /// User-initiated cancel (Esc, click-empty-area, etc.). Tears down UI,

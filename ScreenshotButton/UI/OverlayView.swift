@@ -9,8 +9,9 @@ final class OverlayView: NSView {
     private var dragEnd: CGPoint?
     private var hoveredFrame: CGRect?
 
-    init(screen: NSScreen) {
+    init(screen: NSScreen, manager: OverlayManager) {
         self.screen = screen
+        self.manager = manager
         super.init(frame: screen.frame)
         wantsLayer = true
         layer?.backgroundColor = NSColor.black.withAlphaComponent(0.05).cgColor
@@ -25,10 +26,23 @@ final class OverlayView: NSView {
         trackingAreas.forEach { removeTrackingArea($0) }
         let ta = NSTrackingArea(
             rect: bounds,
-            options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect, .cursorUpdate],
             owner: self, userInfo: nil
         )
         addTrackingArea(ta)
+    }
+
+    /// `resetCursorRects` is called by AppKit whenever it needs the view's
+    /// cursor map — on window activation, after `invalidateCursorRects`, etc.
+    /// Area mode: crosshair so the user sees they can drag. Window mode: arrow.
+    override func resetCursorRects() {
+        let cursor: NSCursor = manager?.mode == .area ? .crosshair : .arrow
+        addCursorRect(bounds, cursor: cursor)
+    }
+
+    /// Called by `OverlayManager` after Space toggles the capture mode.
+    func refreshCursor() {
+        window?.invalidateCursorRects(for: self)
     }
 
     override func mouseMoved(with event: NSEvent) {

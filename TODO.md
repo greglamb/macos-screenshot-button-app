@@ -24,4 +24,5 @@
 
 - **Integration test for `OverlayManager`** — the most complex file in the repo (Tasks, cancellation, post-`await` state re-check) currently has zero direct tests. Coverage at the coordinator/UI seam is the highest-leverage gap.
 - **Re-entry handling in `OverlayManager.begin`** — currently a silent no-op when a session is already in flight. Consider dismissing the in-flight session first, or surfacing a console log.
+- **Tighter window-picker filtering** — the current `SCShareableContent` filter excludes off-screen/minimized/untitled windows, but still admits sub-pixel windows (tooltips, invisible helpers) and non-normal layers (menu bar, floating panels). If users report picking chrome, add `frame.width/height >= 20` and `windowLayer == 0`.
 - **`Casks/screenshotbutton.rb` `zap trash:` audit (resolved 2026-04-14):** Confirmed `LaunchAtLogin.setEnabled` writes the `launchAtLogin` flag via `UserDefaults.standard`, which lands in `~/Library/Preferences/dev.greglamb.ScreenshotButton.plist`. The existing `zap trash:` entry is correct; no change needed.
