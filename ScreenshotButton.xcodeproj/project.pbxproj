@@ -16,6 +16,7 @@
 		46E48B8DC89AC9D3F26BB1F6 /* SCShareableContentProviding.swift in Sources */ = {isa = PBXBuildFile; fileRef = D427297EA0E044B7748874CE /* SCShareableContentProviding.swift */; };
 		5ED2A22225952E2AA88C84C5 /* AreaGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E0623479B701CF274D804BE /* AreaGeometry.swift */; };
 		60B7FBF83B76EAEF47E9D4D1 /* ScreenshotButtonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D46CCA27BDB846321CDA63 /* ScreenshotButtonApp.swift */; };
+		78A76B9C670FF73FF346FC0A /* WindowEnumerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D3E832F52B33D9505F25E3 /* WindowEnumerator.swift */; };
 		957C8C7B8486A8BC8B64FB4B /* CapturedWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA9A09E94780AA9E2B55A99 /* CapturedWindow.swift */; };
 		A66B57ACA0F73932929B9218 /* SCShareableContentProvidingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5CF37F215DF3D548340152 /* SCShareableContentProvidingTests.swift */; };
 		BCE9374E1274B69F1A292895 /* HitTesting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 062F30A6F6F15DED7F730A32 /* HitTesting.swift */; };
@@ -50,6 +51,7 @@
 		AB79B314FB1B7984EFB3E8BC /* FakeSCShareableContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeSCShareableContent.swift; sourceTree = "<group>"; };
 		C1C5C2FFB71C997997336FFC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D427297EA0E044B7748874CE /* SCShareableContentProviding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCShareableContentProviding.swift; sourceTree = "<group>"; };
+		D4D3E832F52B33D9505F25E3 /* WindowEnumerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowEnumerator.swift; sourceTree = "<group>"; };
 		D9F35FB026936026D7A40CBD /* ScreenshotButtonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenshotButtonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB8D45A7EE5FDC96ED8C89B0 /* CaptureMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureMode.swift; sourceTree = "<group>"; };
 		ED182C6251F17E9E0AAC2981 /* HitTestingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HitTestingTests.swift; sourceTree = "<group>"; };
@@ -99,6 +101,7 @@
 			isa = PBXGroup;
 			children = (
 				D427297EA0E044B7748874CE /* SCShareableContentProviding.swift */,
+				D4D3E832F52B33D9505F25E3 /* WindowEnumerator.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -256,6 +259,7 @@
 				46E48B8DC89AC9D3F26BB1F6 /* SCShareableContentProviding.swift in Sources */,
 				60B7FBF83B76EAEF47E9D4D1 /* ScreenshotButtonApp.swift in Sources */,
 				1563AA66F7B54115B0F232DB /* SinkKind.swift in Sources */,
+				78A76B9C670FF73FF346FC0A /* WindowEnumerator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
