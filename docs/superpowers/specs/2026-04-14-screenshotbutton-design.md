@@ -195,7 +195,7 @@ Fully specified in `_gitignored/macos-app-release-conventions.md`. Summary:
 - **Cask.** `Casks/screenshotbutton.rb` with pinned `version`, pinned `sha256`, versioned URL (`releases/download/v#{version}/ScreenshotButton-#{version}.dmg`), `depends_on macos: ">= :sonoma"`, and `zap trash: ["~/Library/Preferences/dev.greglamb.ScreenshotButton.plist"]`.
 - **Secrets.** `CERTIFICATE_P12`, `CERTIFICATE_PASSWORD`, `APPLE_TEAM_ID`, `APPLE_ID`, `APP_SPECIFIC_PASSWORD`.
 - **CI vs. local dev.** Raw `xcodebuild` in CI; `xcodebuildmcp` locally for describe-ui and structured output.
-- **Install.** `brew tap greglamb/macos-screenshot-button https://github.com/greglamb/macos-screenshot-button && brew install --cask screenshotbutton`. No `--no-quarantine` — notarized and stapled from v1.
+- **Install.** `brew tap greglamb/macos-screenshot-button-app https://github.com/greglamb/macos-screenshot-button-app && brew install --cask screenshotbutton`. No `--no-quarantine` — notarized and stapled from v1.
 
 ## Testing strategy
 

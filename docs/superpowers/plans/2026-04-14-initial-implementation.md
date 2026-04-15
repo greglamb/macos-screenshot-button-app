@@ -2653,10 +2653,10 @@ cask "screenshotbutton" do
   version "0.0.0"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
 
-  url "https://github.com/greglamb/macos-screenshot-button/releases/download/v#{version}/ScreenshotButton-#{version}.dmg"
+  url "https://github.com/greglamb/macos-screenshot-button-app/releases/download/v#{version}/ScreenshotButton-#{version}.dmg"
   name "ScreenshotButton"
   desc "Menu bar app for window and area screenshots to file or clipboard"
-  homepage "https://github.com/greglamb/macos-screenshot-button"
+  homepage "https://github.com/greglamb/macos-screenshot-button-app"
 
   depends_on macos: ">= :sonoma"
 
@@ -2874,7 +2874,7 @@ A macOS menu bar app for capturing windows or drawn regions to a PNG file (opene
 ## Install
 
 ```
-brew tap greglamb/macos-screenshot-button https://github.com/greglamb/macos-screenshot-button
+brew tap greglamb/macos-screenshot-button-app https://github.com/greglamb/macos-screenshot-button-app
 brew install --cask screenshotbutton
 ```
 
@@ -2944,7 +2944,7 @@ git commit -m "docs: add README, changelog entry, and deferred-work list"
 On a branch that is *not* `main`:
 1. Push a lightweight tag `v0.1.0-rc1` to `main`.
 2. Confirm `release.yml` runs, produces a DMG, creates the release, and rewrites `Casks/screenshotbutton.rb`.
-3. On a clean Mac: `brew tap greglamb/macos-screenshot-button ...; brew install --cask screenshotbutton`. App should launch with no Gatekeeper warnings.
+3. On a clean Mac: `brew tap greglamb/macos-screenshot-button-app ...; brew install --cask screenshotbutton`. App should launch with no Gatekeeper warnings.
 4. `brew uninstall --zap --cask screenshotbutton`. Confirm the prefs file is removed.
 
 If any step fails, don't tag `v1.0.0`. File issues against the specific failure mode in the convention doc.

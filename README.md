@@ -5,7 +5,7 @@ A macOS menu bar app for capturing windows or drawn regions to a PNG file (opene
 ## Install
 
 ```
-brew tap greglamb/macos-screenshot-button https://github.com/greglamb/macos-screenshot-button
+brew tap greglamb/macos-screenshot-button-app https://github.com/greglamb/macos-screenshot-button-app
 brew install --cask screenshotbutton
 ```
 
