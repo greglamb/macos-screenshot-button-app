@@ -24,13 +24,27 @@ xcodebuild test \
   -project ScreenshotButton.xcodeproj \
   -scheme ScreenshotButton \
   -destination 'platform=macOS' \
-  -only-testing:ScreenshotButtonTests/<TestTypeOrFile> \
+  -only-testing:ScreenshotButtonTests/<SuiteName> \
   CODE_SIGN_IDENTITY="-" \
   CODE_SIGNING_REQUIRED=NO \
   -quiet
 ```
 
-Replace `<TestTypeOrFile>` with the filename (minus `.swift`) or leave the flag off to run all tests.
+Replace `<SuiteName>` with the `struct` name marked `@Suite` in the test file (e.g. `CaptureSessionTests`), or leave the flag off to run all tests. Swift Testing's filter requires a suite type — free `@Test` functions are not filterable by filename alone, so every test file in this plan wraps its tests in an explicit `@Suite struct`.
+
+**Test tags** — A shared `Tags.swift` file (created in Task 4) defines custom tags used across tests:
+
+```swift
+import Testing
+
+extension Tag {
+    @Tag static var slow: Self
+    @Tag static var fileSystem: Self
+    @Tag static var ui: Self
+}
+```
+
+Slow or filesystem-touching tests carry the relevant tag; async tests carry `.timeLimit(.minutes(1))` per `.claude/rules/testing.md`.
 
 ---
 
@@ -229,38 +243,57 @@ Push the branch when ready; confirm the Actions run goes green before proceeding
 
 ---
 
-## Task 4: Core enums — `CaptureMode` and `SinkKind`
+## Task 4: Tags helper + core enums `CaptureMode` and `SinkKind`
 
 **Files:**
 - Create: `ScreenshotButton/Core/CaptureMode.swift`
 - Create: `ScreenshotButton/Core/SinkKind.swift`
+- Create: `ScreenshotButtonTests/Support/Tags.swift`
 - Create: `ScreenshotButtonTests/Core/CoreEnumsTests.swift`
 
-Create the `ScreenshotButton/Core/` and `ScreenshotButtonTests/Core/` groups in Xcode first (New Group).
+Create the `ScreenshotButton/Core/`, `ScreenshotButtonTests/Core/`, and `ScreenshotButtonTests/Support/` groups in Xcode first.
 
-- [ ] **Step 1: Write failing test**
+- [ ] **Step 1: Write `Tags.swift` first** (shared by all subsequent test files)
+
+`ScreenshotButtonTests/Support/Tags.swift`:
+```swift
+import Testing
+
+extension Tag {
+    @Tag static var slow: Self
+    @Tag static var fileSystem: Self
+    @Tag static var ui: Self
+}
+```
+
+- [ ] **Step 2: Write failing test**
 
 `ScreenshotButtonTests/Core/CoreEnumsTests.swift`:
 ```swift
 import Testing
 @testable import ScreenshotButton
 
-@Test func captureModeIsSendableAndEquatable() {
-    let a: CaptureMode = .window
-    let b: CaptureMode = .area
-    #expect(a != b)
-    #expect(a == .window)
-}
+@Suite("Core enums")
+struct CoreEnumsTests {
+    @Test("CaptureMode is Sendable and Equatable")
+    func captureModeIsSendableAndEquatable() {
+        let a: CaptureMode = .window
+        let b: CaptureMode = .area
+        #expect(a != b)
+        #expect(a == .window)
+    }
 
-@Test func sinkKindIsSendableAndEquatable() {
-    let a: SinkKind = .toFile
-    let b: SinkKind = .toClipboard
-    #expect(a != b)
-    #expect(a == .toFile)
+    @Test("SinkKind is Sendable and Equatable")
+    func sinkKindIsSendableAndEquatable() {
+        let a: SinkKind = .toFile
+        let b: SinkKind = .toClipboard
+        #expect(a != b)
+        #expect(a == .toFile)
+    }
 }
 ```
 
-- [ ] **Step 2: Run — expect FAIL** (types do not exist yet)
+- [ ] **Step 3: Run — expect FAIL** (types do not exist yet)
 
 ```bash
 xcodebuild test -project ScreenshotButton.xcodeproj -scheme ScreenshotButton \
@@ -270,7 +303,7 @@ xcodebuild test -project ScreenshotButton.xcodeproj -scheme ScreenshotButton \
 ```
 Expected: compile error — "Cannot find type 'CaptureMode' in scope".
 
-- [ ] **Step 3: Implement**
+- [ ] **Step 4: Implement**
 
 `ScreenshotButton/Core/CaptureMode.swift`:
 ```swift
@@ -292,15 +325,15 @@ public enum SinkKind: Equatable, Sendable {
 }
 ```
 
-- [ ] **Step 4: Run — expect PASS**
+- [ ] **Step 5: Run — expect PASS**
 
-Same command as step 2. Expected: `** TEST SUCCEEDED **`.
+Same command as step 3. Expected: `** TEST SUCCEEDED **`.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add ScreenshotButton/Core ScreenshotButtonTests/Core ScreenshotButton.xcodeproj
-git commit -m "feat: add CaptureMode and SinkKind enums"
+git add ScreenshotButton/Core ScreenshotButtonTests/Core ScreenshotButtonTests/Support ScreenshotButton.xcodeproj
+git commit -m "feat: add CaptureMode, SinkKind, and test Tags helper"
 ```
 
 ---
@@ -318,18 +351,23 @@ import Testing
 import CoreGraphics
 @testable import ScreenshotButton
 
-@Test func capturedWindowHasStableIdentity() {
-    let a = CapturedWindow(id: 42, frame: .zero, title: "A", ownerName: "X")
-    let b = CapturedWindow(id: 42, frame: .init(x: 9, y: 9, width: 9, height: 9), title: "B", ownerName: "Y")
-    #expect(a.id == b.id)
-}
+@Suite("CapturedWindow")
+struct CapturedWindowTests {
+    @Test("Identity is stable across frame / title changes")
+    func capturedWindowHasStableIdentity() {
+        let a = CapturedWindow(id: 42, frame: .zero, title: "A", ownerName: "X")
+        let b = CapturedWindow(id: 42, frame: .init(x: 9, y: 9, width: 9, height: 9), title: "B", ownerName: "Y")
+        #expect(a.id == b.id)
+    }
 
-@Test func capturedWindowEquatableByAllFields() {
-    let a = CapturedWindow(id: 1, frame: .zero, title: "T", ownerName: "O")
-    let b = CapturedWindow(id: 1, frame: .zero, title: "T", ownerName: "O")
-    let c = CapturedWindow(id: 1, frame: .zero, title: "T", ownerName: "Q")
-    #expect(a == b)
-    #expect(a != c)
+    @Test("Equality compares all fields")
+    func capturedWindowEquatableByAllFields() {
+        let a = CapturedWindow(id: 1, frame: .zero, title: "T", ownerName: "O")
+        let b = CapturedWindow(id: 1, frame: .zero, title: "T", ownerName: "O")
+        let c = CapturedWindow(id: 1, frame: .zero, title: "T", ownerName: "Q")
+        #expect(a == b)
+        #expect(a != c)
+    }
 }
 ```
 
@@ -380,24 +418,42 @@ import Testing
 import CoreGraphics
 @testable import ScreenshotButton
 
-@Test(arguments: [
-    (CGPoint(x: 0, y: 0),   CGPoint(x: 10, y: 10), CGRect(x: 0, y: 0, width: 10, height: 10)),
-    (CGPoint(x: 10, y: 10), CGPoint(x: 0, y: 0),   CGRect(x: 0, y: 0, width: 10, height: 10)),
-    (CGPoint(x: 5, y: 20),  CGPoint(x: 25, y: 0),  CGRect(x: 5, y: 0, width: 20, height: 20)),
-    (CGPoint(x: 3, y: 3),   CGPoint(x: 3, y: 3),   CGRect(x: 3, y: 3, width: 0,  height: 0)),
-])
-func rectangleNormalizes(start: CGPoint, end: CGPoint, expected: CGRect) {
-    #expect(AreaGeometry.rectangle(from: start, to: end) == expected)
+struct DragPair: Sendable, CustomStringConvertible {
+    let start: CGPoint
+    let end: CGPoint
+    let expected: CGRect
+    var description: String { "\(start)→\(end)" }
 }
 
-@Test(arguments: [
-    (CGRect(x: 0, y: 0, width: 0,   height: 0),   true),
-    (CGRect(x: 0, y: 0, width: 4,   height: 4),   true),
-    (CGRect(x: 0, y: 0, width: 5,   height: 5),   false),
-    (CGRect(x: 0, y: 0, width: 100, height: 100), false),
-])
-func cancelThreshold(rect: CGRect, isCancel: Bool) {
-    #expect(AreaGeometry.isCancel(rect) == isCancel)
+struct CancelCase: Sendable, CustomStringConvertible {
+    let rect: CGRect
+    let isCancel: Bool
+    var description: String { "\(rect)" }
+}
+
+@Suite("AreaGeometry")
+struct AreaGeometryTests {
+    @Test("Rectangle normalizes regardless of drag direction",
+          arguments: [
+            DragPair(start: .init(x: 0, y: 0),   end: .init(x: 10, y: 10), expected: .init(x: 0, y: 0, width: 10, height: 10)),
+            DragPair(start: .init(x: 10, y: 10), end: .init(x: 0,  y: 0),  expected: .init(x: 0, y: 0, width: 10, height: 10)),
+            DragPair(start: .init(x: 5,  y: 20), end: .init(x: 25, y: 0),  expected: .init(x: 5, y: 0, width: 20, height: 20)),
+            DragPair(start: .init(x: 3,  y: 3),  end: .init(x: 3,  y: 3),  expected: .init(x: 3, y: 3, width: 0,  height: 0)),
+          ])
+    func rectangleNormalizes(_ drag: DragPair) {
+        #expect(AreaGeometry.rectangle(from: drag.start, to: drag.end) == drag.expected)
+    }
+
+    @Test("Drags below the 5pt threshold are treated as cancel",
+          arguments: [
+            CancelCase(rect: .init(x: 0, y: 0, width: 0,   height: 0),   isCancel: true),
+            CancelCase(rect: .init(x: 0, y: 0, width: 4,   height: 4),   isCancel: true),
+            CancelCase(rect: .init(x: 0, y: 0, width: 5,   height: 5),   isCancel: false),
+            CancelCase(rect: .init(x: 0, y: 0, width: 100, height: 100), isCancel: false),
+          ])
+    func cancelThreshold(_ c: CancelCase) {
+        #expect(AreaGeometry.isCancel(c.rect) == c.isCancel)
+    }
 }
 ```
 
@@ -452,27 +508,32 @@ import Testing
 import CoreGraphics
 @testable import ScreenshotButton
 
-private func w(_ id: CGWindowID, _ r: CGRect) -> CapturedWindow {
-    CapturedWindow(id: id, frame: r, title: nil, ownerName: nil)
-}
+@Suite("HitTesting")
+struct HitTestingTests {
+    private func w(_ id: CGWindowID, _ r: CGRect) -> CapturedWindow {
+        CapturedWindow(id: id, frame: r, title: nil, ownerName: nil)
+    }
 
-@Test func topmostReturnsNilForEmptyList() {
-    #expect(HitTesting.topmost(at: .zero, in: []) == nil)
-}
+    @Test("Empty list returns nil")
+    func topmostReturnsNilForEmptyList() {
+        #expect(HitTesting.topmost(at: .zero, in: []) == nil)
+    }
 
-@Test func topmostReturnsNilWhenNoneContainPoint() {
-    let ws = [w(1, CGRect(x: 0, y: 0, width: 10, height: 10))]
-    #expect(HitTesting.topmost(at: CGPoint(x: 100, y: 100), in: ws) == nil)
-}
+    @Test("Point outside every frame returns nil")
+    func topmostReturnsNilWhenNoneContainPoint() {
+        let ws = [w(1, CGRect(x: 0, y: 0, width: 10, height: 10))]
+        #expect(HitTesting.topmost(at: CGPoint(x: 100, y: 100), in: ws) == nil)
+    }
 
-@Test func topmostReturnsFrontmostContainingPoint() {
-    // Windows are supplied in front-to-back z-order.
-    let ws = [
-        w(1, CGRect(x: 0, y: 0, width: 100, height: 100)),
-        w(2, CGRect(x: 0, y: 0, width: 200, height: 200)),
-    ]
-    #expect(HitTesting.topmost(at: CGPoint(x: 50, y: 50), in: ws)?.id == 1)
-    #expect(HitTesting.topmost(at: CGPoint(x: 150, y: 150), in: ws)?.id == 2)
+    @Test("Returns frontmost window containing the point (front-to-back z-order)")
+    func topmostReturnsFrontmostContainingPoint() {
+        let ws = [
+            w(1, CGRect(x: 0, y: 0, width: 100, height: 100)),
+            w(2, CGRect(x: 0, y: 0, width: 200, height: 200)),
+        ]
+        #expect(HitTesting.topmost(at: CGPoint(x: 50, y: 50), in: ws)?.id == 1)
+        #expect(HitTesting.topmost(at: CGPoint(x: 150, y: 150), in: ws)?.id == 2)
+    }
 }
 ```
 
@@ -518,90 +579,89 @@ import Testing
 @testable import ScreenshotButton
 
 @MainActor
-@Test func startsInIdle() {
+@Suite("CaptureSession state machine")
+struct CaptureSessionTests {
     let s = CaptureSession()
-    #expect(s.state == .idle)
-    #expect(s.hoveredWindow == nil)
-}
 
-@MainActor
-@Test func startTransitionsToCapturingWithModeAndSink() {
-    let s = CaptureSession()
-    s.start(mode: .window, sink: .toFile)
-    #expect(s.state == .capturing)
-    #expect(s.mode == .window)
-    #expect(s.sink == .toFile)
-}
+    @Test("Starts in idle with no hover")
+    func startsInIdle() {
+        #expect(s.state == .idle)
+        #expect(s.hoveredWindow == nil)
+    }
 
-@MainActor
-@Test func startIsNoOpWhenNotIdle() {
-    let s = CaptureSession()
-    s.start(mode: .window, sink: .toFile)
-    s.start(mode: .area, sink: .toClipboard)
-    #expect(s.mode == .window)
-    #expect(s.sink == .toFile)
-}
+    @Test("start() transitions to capturing with chosen mode and sink")
+    func startTransitionsToCapturingWithModeAndSink() {
+        s.start(mode: .window, sink: .toFile)
+        #expect(s.state == .capturing)
+        #expect(s.mode == .window)
+        #expect(s.sink == .toFile)
+    }
 
-@MainActor
-@Test func toggleSwapsModeAndClearsHover() {
-    let s = CaptureSession()
-    s.start(mode: .window, sink: .toFile)
-    s.hover(CapturedWindow(id: 1, frame: .zero, title: nil, ownerName: nil))
-    s.toggle()
-    #expect(s.mode == .area)
-    #expect(s.hoveredWindow == nil)
-    s.toggle()
-    #expect(s.mode == .window)
-}
+    @Test("start() is a no-op when already capturing")
+    func startIsNoOpWhenNotIdle() {
+        s.start(mode: .window, sink: .toFile)
+        s.start(mode: .area, sink: .toClipboard)
+        #expect(s.mode == .window)
+        #expect(s.sink == .toFile)
+    }
 
-@MainActor
-@Test func toggleIgnoredWhenIdle() {
-    let s = CaptureSession()
-    s.toggle()
-    #expect(s.mode == .window) // default
-    #expect(s.state == .idle)
-}
+    @Test("toggle() swaps mode and clears hover")
+    func toggleSwapsModeAndClearsHover() {
+        s.start(mode: .window, sink: .toFile)
+        s.hover(CapturedWindow(id: 1, frame: .zero, title: nil, ownerName: nil))
+        s.toggle()
+        #expect(s.mode == .area)
+        #expect(s.hoveredWindow == nil)
+        s.toggle()
+        #expect(s.mode == .window)
+    }
 
-@MainActor
-@Test func hoverOnlyUpdatesInWindowMode() {
-    let win = CapturedWindow(id: 1, frame: .zero, title: nil, ownerName: nil)
-    let s = CaptureSession()
-    s.start(mode: .window, sink: .toFile)
-    s.hover(win)
-    #expect(s.hoveredWindow == win)
-    s.toggle() // -> area
-    s.hover(win)
-    #expect(s.hoveredWindow == nil)
-}
+    @Test("toggle() is ignored while idle")
+    func toggleIgnoredWhenIdle() {
+        s.toggle()
+        #expect(s.mode == .window) // default
+        #expect(s.state == .idle)
+    }
 
-@MainActor
-@Test func cancelReturnsToIdle() {
-    let s = CaptureSession()
-    s.start(mode: .window, sink: .toFile)
-    s.cancel()
-    #expect(s.state == .idle)
-    #expect(s.hoveredWindow == nil)
-}
+    @Test("hover only updates in window mode")
+    func hoverOnlyUpdatesInWindowMode() {
+        let win = CapturedWindow(id: 1, frame: .zero, title: nil, ownerName: nil)
+        s.start(mode: .window, sink: .toFile)
+        s.hover(win)
+        #expect(s.hoveredWindow == win)
+        s.toggle() // -> area
+        s.hover(win)
+        #expect(s.hoveredWindow == nil)
+    }
 
-@MainActor
-@Test func commitMovesToDeliveringThenFinishReturnsToIdle() {
-    let s = CaptureSession()
-    s.start(mode: .window, sink: .toFile)
-    s.commit()
-    #expect(s.state == .delivering)
-    s.finish()
-    #expect(s.state == .idle)
-}
+    @Test("cancel() returns to idle")
+    func cancelReturnsToIdle() {
+        s.start(mode: .window, sink: .toFile)
+        s.cancel()
+        #expect(s.state == .idle)
+        #expect(s.hoveredWindow == nil)
+    }
 
-@MainActor
-@Test func cancelHasNoEffectDuringDelivering() {
-    let s = CaptureSession()
-    s.start(mode: .window, sink: .toFile)
-    s.commit()
-    s.cancel()
-    #expect(s.state == .delivering)
+    @Test("commit() moves to delivering and finish() returns to idle")
+    func commitMovesToDeliveringThenFinishReturnsToIdle() {
+        s.start(mode: .window, sink: .toFile)
+        s.commit()
+        #expect(s.state == .delivering)
+        s.finish()
+        #expect(s.state == .idle)
+    }
+
+    @Test("cancel() has no effect while delivering")
+    func cancelHasNoEffectDuringDelivering() {
+        s.start(mode: .window, sink: .toFile)
+        s.commit()
+        s.cancel()
+        #expect(s.state == .delivering)
+    }
 }
 ```
+
+Note: each `@Test` method gets a fresh `CaptureSession` because `s` is initialized in the struct's implicit memberwise init — and Swift Testing instantiates a new suite value per test.
 
 - [ ] **Step 2: Run — expect FAIL.**
 
@@ -694,11 +754,15 @@ Create the `Services/` and `ScreenshotButtonTests/Fakes/` groups.
 import Testing
 @testable import ScreenshotButton
 
-@Test func fakeShareableContentReturnsInjectedWindows() async throws {
-    let ws = [CapturedWindow(id: 1, frame: .zero, title: "A", ownerName: "App")]
-    let fake = FakeSCShareableContent(result: .success(ws))
-    let out = try await fake.shareableContent()
-    #expect(out == ws)
+@Suite("SCShareableContentProviding")
+struct SCShareableContentProvidingTests {
+    @Test("Fake returns the injected windows", .timeLimit(.minutes(1)))
+    func fakeShareableContentReturnsInjectedWindows() async throws {
+        let ws = [CapturedWindow(id: 1, frame: .zero, title: "A", ownerName: "App")]
+        let fake = FakeSCShareableContent(result: .success(ws))
+        let out = try await fake.shareableContent()
+        #expect(out == ws)
+    }
 }
 ```
 
@@ -721,13 +785,15 @@ import Foundation
 @testable import ScreenshotButton
 
 struct FakeSCShareableContent: SCShareableContentProviding {
-    var result: Result<[CapturedWindow], Error>
+    let result: Result<[CapturedWindow], any Error & Sendable>
 
     func shareableContent() async throws -> [CapturedWindow] {
         try result.get()
     }
 }
 ```
+
+`Result.Failure` is constrained to `Sendable` so the struct itself is provably `Sendable` without `@unchecked`. Test failure cases supply a sendable error type (e.g. a small `enum FakeError: Error & Sendable`).
 
 - [ ] **Step 4: Run — expect PASS.**
 
@@ -808,23 +874,29 @@ import CoreGraphics
 @testable import ScreenshotButton
 
 @MainActor
-@Test func capturerForwardsWindowTarget() async throws {
-    let fake = FakeScreenshotManager()
-    let capturer = Capturer(manager: fake)
-    let win = CapturedWindow(id: 7, frame: .init(x: 0, y: 0, width: 100, height: 100), title: nil, ownerName: nil)
+@Suite("Capturer")
+struct CapturerTests {
+    @Test("Forwards a window target to the manager", .timeLimit(.minutes(1)))
+    func capturerForwardsWindowTarget() async throws {
+        let fake = FakeScreenshotManager()
+        let capturer = Capturer(manager: fake)
+        let win = CapturedWindow(id: 7, frame: .init(x: 0, y: 0, width: 100, height: 100), title: nil, ownerName: nil)
 
-    _ = try await capturer.captureWindow(win)
-    #expect(fake.lastTarget == .window(id: 7))
-}
+        _ = try await capturer.captureWindow(win)
+        let target = await fake.lastTarget
+        #expect(target == .window(id: 7))
+    }
 
-@MainActor
-@Test func capturerForwardsAreaTarget() async throws {
-    let fake = FakeScreenshotManager()
-    let capturer = Capturer(manager: fake)
-    let rect = CGRect(x: 10, y: 20, width: 30, height: 40)
+    @Test("Forwards an area target to the manager", .timeLimit(.minutes(1)))
+    func capturerForwardsAreaTarget() async throws {
+        let fake = FakeScreenshotManager()
+        let capturer = Capturer(manager: fake)
+        let rect = CGRect(x: 10, y: 20, width: 30, height: 40)
 
-    _ = try await capturer.captureArea(rect, displayID: 99)
-    #expect(fake.lastTarget == .area(rect: rect, displayID: 99))
+        _ = try await capturer.captureArea(rect, displayID: 99)
+        let target = await fake.lastTarget
+        #expect(target == .area(rect: rect, displayID: 99))
+    }
 }
 ```
 
@@ -868,10 +940,13 @@ struct Capturer: Sendable {
 import CoreGraphics
 @testable import ScreenshotButton
 
-final class FakeScreenshotManager: ScreenshotManaging, @unchecked Sendable {
-    // @unchecked: test-only single-threaded fake; test drives it on MainActor.
+actor FakeScreenshotManager: ScreenshotManaging {
     var lastTarget: CaptureTarget?
     var result: Result<CGImage, Error>?
+
+    func setResult(_ result: Result<CGImage, Error>) {
+        self.result = result
+    }
 
     func capture(_ target: CaptureTarget) async throws -> CGImage {
         lastTarget = target
@@ -879,7 +954,7 @@ final class FakeScreenshotManager: ScreenshotManaging, @unchecked Sendable {
         return Self.makeDummy()
     }
 
-    static func makeDummy() -> CGImage {
+    nonisolated static func makeDummy() -> CGImage {
         let ctx = CGContext(
             data: nil, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
             space: CGColorSpaceCreateDeviceRGB(),
@@ -889,6 +964,8 @@ final class FakeScreenshotManager: ScreenshotManaging, @unchecked Sendable {
     }
 }
 ```
+
+`ScreenshotManaging` is a non-isolated `Sendable` async protocol; the fake uses `actor` isolation so its mutable `lastTarget` is provably race-free. Tests read `lastTarget` via `await fake.lastTarget` (already shown in the Capturer tests above — adjust the `#expect` lines to read `let target = await fake.lastTarget; #expect(target == ...)`).
 
 - [ ] **Step 4: Run — expect PASS.**
 
@@ -981,24 +1058,28 @@ import CoreGraphics
 import ImageIO
 @testable import ScreenshotButton
 
-@Test func pngEncodeRoundTripsDimensions() throws {
-    let image = makeTestImage(width: 42, height: 17)
-    let data = try PNGEncoder.encode(image)
-    let src = CGImageSourceCreateWithData(data as CFData, nil)!
-    let decoded = CGImageSourceCreateImageAtIndex(src, 0, nil)!
-    #expect(decoded.width == 42)
-    #expect(decoded.height == 17)
-}
+@Suite("PNG encoding")
+struct PNGEncoderTests {
+    @Test("Round-trips image dimensions through PNG")
+    func pngEncodeRoundTripsDimensions() throws {
+        let image = try #require(makeTestImage(width: 42, height: 17))
+        let data = try PNGEncoder.encode(image)
+        let src = try #require(CGImageSourceCreateWithData(data as CFData, nil))
+        let decoded = try #require(CGImageSourceCreateImageAtIndex(src, 0, nil))
+        #expect(decoded.width == 42)
+        #expect(decoded.height == 17)
+    }
 
-private func makeTestImage(width: Int, height: Int) -> CGImage {
-    let ctx = CGContext(
-        data: nil, width: width, height: height, bitsPerComponent: 8,
-        bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
-        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    )!
-    ctx.setFillColor(CGColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1))
-    ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
-    return ctx.makeImage()!
+    private func makeTestImage(width: Int, height: Int) -> CGImage? {
+        guard let ctx = CGContext(
+            data: nil, width: width, height: height, bitsPerComponent: 8,
+            bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        ctx.setFillColor(CGColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        return ctx.makeImage()
+    }
 }
 ```
 
@@ -1064,21 +1145,28 @@ import Testing
 import CoreGraphics
 @testable import ScreenshotButton
 
-@Test func fileSinkWritesPngThenOpensInPreview() async throws {
-    let writer = FakeFileWriter()
-    let opener = FakePreviewOpener()
-    let sink = FileSink(
-        writer: writer,
-        opener: opener,
-        nowProvider: { Date(timeIntervalSince1970: 1_700_000_000) }
-    )
-    let image = FakeScreenshotManager.makeDummy()
-    let url = try await sink.deliver(image)
+@MainActor
+@Suite("FileSink")
+struct FileSinkTests {
+    @Test("Writes a PNG and asks the opener to open it",
+          .tags(.fileSystem, .slow),
+          .timeLimit(.minutes(1)))
+    func fileSinkWritesPngThenOpensInPreview() async throws {
+        let writer = FakeFileWriter()
+        let opener = FakePreviewOpener()
+        let sink = FileSink(
+            writer: writer,
+            opener: opener,
+            nowProvider: { Date(timeIntervalSince1970: 1_700_000_000) }
+        )
+        let image = FakeScreenshotManager.makeDummy()
+        let url = try await sink.deliver(image)
 
-    #expect(writer.writtenURL == url)
-    #expect(url.lastPathComponent.hasPrefix("ScreenshotButton-"))
-    #expect(url.lastPathComponent.hasSuffix(".png"))
-    #expect(opener.openedURL == url)
+        #expect(writer.writtenURL == url)
+        #expect(url.lastPathComponent.hasPrefix("ScreenshotButton-"))
+        #expect(url.lastPathComponent.hasSuffix(".png"))
+        #expect(opener.openedURL == url)
+    }
 }
 ```
 
@@ -1090,11 +1178,13 @@ import CoreGraphics
 ```swift
 import Foundation
 
-protocol FileWriting: Sendable {
+@MainActor
+protocol FileWriting {
     func write(_ data: Data, to url: URL) throws
     func createDirectory(at url: URL) throws
 }
 
+@MainActor
 struct SystemFileWriter: FileWriting {
     func write(_ data: Data, to url: URL) throws {
         try data.write(to: url, options: .atomic)
@@ -1109,10 +1199,12 @@ struct SystemFileWriter: FileWriting {
 ```swift
 import AppKit
 
-protocol PreviewOpening: Sendable {
+@MainActor
+protocol PreviewOpening {
     func open(_ url: URL) async throws
 }
 
+@MainActor
 struct SystemPreviewOpener: PreviewOpening {
     func open(_ url: URL) async throws {
         let preview = URL(fileURLWithPath: "/System/Applications/Preview.app")
@@ -1126,19 +1218,20 @@ struct SystemPreviewOpener: PreviewOpening {
 import Foundation
 import CoreGraphics
 
-struct FileSink: Sendable {
+@MainActor
+struct FileSink {
     static let folderName = "ScreenshotButton"
 
-    let writer: FileWriting
-    let opener: PreviewOpening
-    let nowProvider: @Sendable () -> Date
-    let tempDirectoryProvider: @Sendable () -> URL
+    let writer: any FileWriting
+    let opener: any PreviewOpening
+    let nowProvider: () -> Date
+    let tempDirectoryProvider: () -> URL
 
     init(
-        writer: FileWriting = SystemFileWriter(),
-        opener: PreviewOpening = SystemPreviewOpener(),
-        nowProvider: @escaping @Sendable () -> Date = Date.init,
-        tempDirectoryProvider: @escaping @Sendable () -> URL = { URL(fileURLWithPath: NSTemporaryDirectory()) }
+        writer: any FileWriting = SystemFileWriter(),
+        opener: any PreviewOpening = SystemPreviewOpener(),
+        nowProvider: @escaping () -> Date = Date.init,
+        tempDirectoryProvider: @escaping () -> URL = { URL(fileURLWithPath: NSTemporaryDirectory()) }
     ) {
         self.writer = writer
         self.opener = opener
@@ -1169,10 +1262,13 @@ struct FileSink: Sendable {
 import Foundation
 @testable import ScreenshotButton
 
-final class FakeFileWriter: FileWriting, @unchecked Sendable {
+@MainActor
+final class FakeFileWriter: FileWriting {
     var writtenURL: URL?
     var writtenData: Data?
     var createdDirectories: [URL] = []
+
+    nonisolated init() {}
 
     func write(_ data: Data, to url: URL) throws {
         writtenURL = url
@@ -1189,13 +1285,19 @@ final class FakeFileWriter: FileWriting, @unchecked Sendable {
 import Foundation
 @testable import ScreenshotButton
 
-final class FakePreviewOpener: PreviewOpening, @unchecked Sendable {
+@MainActor
+final class FakePreviewOpener: PreviewOpening {
     var openedURL: URL?
+
+    nonisolated init() {}
+
     func open(_ url: URL) async throws {
         openedURL = url
     }
 }
 ```
+
+`FileWriting` and `PreviewOpening` (declared in Step 3) are `@MainActor`-isolated protocols since both real implementations interact with `NSWorkspace` / disk on the main actor in this app. The fakes inherit that isolation, satisfying `Sendable` without `@unchecked`.
 
 - [ ] **Step 4: Run — expect PASS.**
 
@@ -1223,13 +1325,18 @@ import Testing
 import AppKit
 @testable import ScreenshotButton
 
-@Test func clipboardSinkWritesAnImage() {
-    let pb = FakePasteboard()
-    let sink = ClipboardSink(pasteboard: pb)
-    let image = FakeScreenshotManager.makeDummy()
-    sink.deliver(image)
-    #expect(pb.cleared)
-    #expect(pb.writtenImages.count == 1)
+@MainActor
+@Suite("ClipboardSink")
+struct ClipboardSinkTests {
+    @Test("Clears the pasteboard then writes the image")
+    func clipboardSinkWritesAnImage() {
+        let pb = FakePasteboard()
+        let sink = ClipboardSink(pasteboard: pb)
+        let image = FakeScreenshotManager.makeDummy()
+        sink.deliver(image)
+        #expect(pb.cleared)
+        #expect(pb.writtenImages.count == 1)
+    }
 }
 ```
 
@@ -1241,12 +1348,14 @@ import AppKit
 ```swift
 import AppKit
 
-protocol PasteboardWriting: AnyObject, Sendable {
+@MainActor
+protocol PasteboardWriting: AnyObject {
     func clearContents()
     func write(_ image: NSImage)
 }
 
-final class SystemPasteboard: PasteboardWriting, @unchecked Sendable {
+@MainActor
+final class SystemPasteboard: PasteboardWriting {
     let underlying: NSPasteboard
 
     init(_ underlying: NSPasteboard = .general) {
@@ -1267,10 +1376,11 @@ final class SystemPasteboard: PasteboardWriting, @unchecked Sendable {
 import AppKit
 import CoreGraphics
 
-struct ClipboardSink: Sendable {
-    let pasteboard: PasteboardWriting
+@MainActor
+struct ClipboardSink {
+    let pasteboard: any PasteboardWriting
 
-    init(pasteboard: PasteboardWriting = SystemPasteboard()) {
+    init(pasteboard: any PasteboardWriting = SystemPasteboard()) {
         self.pasteboard = pasteboard
     }
 
@@ -1287,9 +1397,12 @@ struct ClipboardSink: Sendable {
 import AppKit
 @testable import ScreenshotButton
 
-final class FakePasteboard: PasteboardWriting, @unchecked Sendable {
+@MainActor
+final class FakePasteboard: PasteboardWriting {
     var cleared = false
     var writtenImages: [NSImage] = []
+
+    nonisolated init() {}
 
     func clearContents() { cleared = true }
     func write(_ image: NSImage) { writtenImages.append(image) }
@@ -1320,32 +1433,38 @@ import Testing
 import Foundation
 @testable import ScreenshotButton
 
-@Test func pruneDeletesFilesOlderThanCutoff() throws {
-    let fm = FileManager.default
-    let dir = fm.temporaryDirectory.appendingPathComponent("TempCleanupTests-\(UUID())", isDirectory: true)
-    try fm.createDirectory(at: dir, withIntermediateDirectories: true)
-    defer { try? fm.removeItem(at: dir) }
+@Suite("TempCleanup", .tags(.fileSystem))
+struct TempCleanupTests {
+    @Test("Deletes files older than the cutoff and keeps fresh ones")
+    func pruneDeletesFilesOlderThanCutoff() throws {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("TempCleanupTests-\(UUID())", isDirectory: true)
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: dir) }
 
-    let old = dir.appendingPathComponent("old.png")
-    let fresh = dir.appendingPathComponent("fresh.png")
-    try Data().write(to: old)
-    try Data().write(to: fresh)
+        let old = dir.appendingPathComponent("old.png")
+        let fresh = dir.appendingPathComponent("fresh.png")
+        try Data().write(to: old)
+        try Data().write(to: fresh)
 
-    // Backdate `old` to 48h ago.
-    let twoDaysAgo = Date(timeIntervalSinceNow: -60 * 60 * 48)
-    try fm.setAttributes([.modificationDate: twoDaysAgo], ofItemAtPath: old.path)
+        // Backdate `old` to 48h ago.
+        let twoDaysAgo = Date(timeIntervalSinceNow: -60 * 60 * 48)
+        try fm.setAttributes([.modificationDate: twoDaysAgo], ofItemAtPath: old.path)
 
-    TempCleanup.prune(directory: dir, olderThan: 60 * 60 * 24, fileManager: fm, now: Date())
+        TempCleanup.prune(directory: dir, olderThan: 60 * 60 * 24, fileManager: fm, now: Date())
 
-    #expect(!fm.fileExists(atPath: old.path))
-    #expect(fm.fileExists(atPath: fresh.path))
-}
+        #expect(!fm.fileExists(atPath: old.path))
+        #expect(fm.fileExists(atPath: fresh.path))
+    }
 
-@Test func pruneIsNoOpWhenDirectoryMissing() {
-    let fm = FileManager.default
-    let dir = fm.temporaryDirectory.appendingPathComponent("does-not-exist-\(UUID())", isDirectory: true)
-    // Should not throw.
-    TempCleanup.prune(directory: dir, olderThan: 60, fileManager: fm, now: Date())
+    @Test("Is a silent no-op when the directory does not exist")
+    func pruneIsNoOpWhenDirectoryMissing() {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("does-not-exist-\(UUID())", isDirectory: true)
+        TempCleanup.prune(directory: dir, olderThan: 60, fileManager: fm, now: Date())
+        // Verify the directory still doesn't exist (i.e. prune didn't accidentally create it).
+        #expect(!fm.fileExists(atPath: dir.path))
+    }
 }
 ```
 
@@ -1410,30 +1529,55 @@ import Testing
 import Foundation
 @testable import ScreenshotButton
 
-@MainActor
-@Test func enableRegistersAndPersists() throws {
-    let defaults = UserDefaults(suiteName: "LaunchAtLoginTests-\(UUID())")!
-    let api = FakeSMAppServiceAPI(initialStatus: .notRegistered)
-    let la = LaunchAtLogin(api: api, defaults: defaults)
-
-    try la.setEnabled(true)
-
-    #expect(api.registerCalls == 1)
-    #expect(defaults.bool(forKey: LaunchAtLogin.defaultsKey) == true)
-    #expect(la.isEnabled == true)
-}
+private struct LaunchError: Error, Equatable {}
 
 @MainActor
-@Test func disableUnregistersAndPersists() throws {
-    let defaults = UserDefaults(suiteName: "LaunchAtLoginTests-\(UUID())")!
-    defaults.set(true, forKey: LaunchAtLogin.defaultsKey)
-    let api = FakeSMAppServiceAPI(initialStatus: .enabled)
-    let la = LaunchAtLogin(api: api, defaults: defaults)
+@Suite("LaunchAtLogin")
+struct LaunchAtLoginTests {
+    private func makeDefaults() -> UserDefaults {
+        let defaults = UserDefaults(suiteName: "LaunchAtLoginTests-\(UUID())")!
+        defaults.removePersistentDomain(forName: defaults.dictionaryRepresentation().description)
+        return defaults
+    }
 
-    try la.setEnabled(false)
+    @Test("Enabling registers with SMAppService and persists to UserDefaults")
+    func enableRegistersAndPersists() throws {
+        let defaults = makeDefaults()
+        let api = FakeSMAppServiceAPI(initialStatus: .notRegistered)
+        let la = LaunchAtLogin(api: api, defaults: defaults)
 
-    #expect(api.unregisterCalls == 1)
-    #expect(defaults.bool(forKey: LaunchAtLogin.defaultsKey) == false)
+        try la.setEnabled(true)
+
+        #expect(api.registerCalls == 1)
+        #expect(defaults.bool(forKey: LaunchAtLogin.defaultsKey) == true)
+        #expect(la.isEnabled == true)
+    }
+
+    @Test("Disabling unregisters and clears the persisted flag")
+    func disableUnregistersAndPersists() throws {
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: LaunchAtLogin.defaultsKey)
+        let api = FakeSMAppServiceAPI(initialStatus: .enabled)
+        let la = LaunchAtLogin(api: api, defaults: defaults)
+
+        try la.setEnabled(false)
+
+        #expect(api.unregisterCalls == 1)
+        #expect(defaults.bool(forKey: LaunchAtLogin.defaultsKey) == false)
+    }
+
+    @Test("A registration failure propagates and leaves the persisted flag untouched")
+    func registrationFailurePropagates() {
+        let defaults = makeDefaults()
+        let api = FakeSMAppServiceAPI(initialStatus: .notRegistered)
+        api.registerError = LaunchError()
+        let la = LaunchAtLogin(api: api, defaults: defaults)
+
+        #expect(throws: LaunchError.self) {
+            try la.setEnabled(true)
+        }
+        #expect(defaults.bool(forKey: LaunchAtLogin.defaultsKey) == false)
+    }
 }
 ```
 
@@ -1453,13 +1597,15 @@ enum SMAppServiceStatus: Sendable {
     case notFound
 }
 
-protocol SMAppServiceAPI: AnyObject, Sendable {
+@MainActor
+protocol SMAppServiceAPI: AnyObject {
     var status: SMAppServiceStatus { get }
     func register() throws
     func unregister() throws
 }
 
-final class SystemSMAppService: SMAppServiceAPI, @unchecked Sendable {
+@MainActor
+final class SystemSMAppService: SMAppServiceAPI {
     var status: SMAppServiceStatus {
         switch SMAppService.mainApp.status {
         case .enabled: return .enabled
@@ -1510,7 +1656,8 @@ final class LaunchAtLogin {
 import Foundation
 @testable import ScreenshotButton
 
-final class FakeSMAppServiceAPI: SMAppServiceAPI, @unchecked Sendable {
+@MainActor
+final class FakeSMAppServiceAPI: SMAppServiceAPI {
     var status: SMAppServiceStatus
     var registerCalls = 0
     var unregisterCalls = 0
@@ -1561,66 +1708,71 @@ import CoreGraphics
 @testable import ScreenshotButton
 
 @MainActor
-@Test func startSetsSessionCapturing() {
-    let c = makeController()
-    c.start(mode: .window, sink: .toFile)
-    #expect(c.session.state == .capturing)
-    #expect(c.session.mode == .window)
-    #expect(c.session.sink == .toFile)
-}
+@Suite("CaptureController")
+struct CaptureControllerTests {
+    @Test("start() puts the session into capturing with the chosen mode and sink")
+    func startSetsSessionCapturing() {
+        let c = makeController()
+        c.start(mode: .window, sink: .toFile)
+        #expect(c.session.state == .capturing)
+        #expect(c.session.mode == .window)
+        #expect(c.session.sink == .toFile)
+    }
 
-@MainActor
-@Test func commitWindowWithFileSinkWritesAndReturnsToIdle() async throws {
-    let writer = FakeFileWriter()
-    let opener = FakePreviewOpener()
-    let c = makeController(fileWriter: writer, previewOpener: opener)
-    c.start(mode: .window, sink: .toFile)
+    @Test("commitWindow with file sink writes a file and returns to idle",
+          .timeLimit(.minutes(1)))
+    func commitWindowWithFileSinkWritesAndReturnsToIdle() async throws {
+        let writer = FakeFileWriter()
+        let opener = FakePreviewOpener()
+        let c = makeController(fileWriter: writer, previewOpener: opener)
+        c.start(mode: .window, sink: .toFile)
 
-    let win = CapturedWindow(id: 1, frame: .zero, title: nil, ownerName: nil)
-    try await c.commitWindow(win)
+        let win = CapturedWindow(id: 1, frame: .zero, title: nil, ownerName: nil)
+        try await c.commitWindow(win)
 
-    #expect(writer.writtenURL != nil)
-    #expect(opener.openedURL != nil)
-    #expect(c.session.state == .idle)
-}
+        #expect(writer.writtenURL != nil)
+        #expect(opener.openedURL != nil)
+        #expect(c.session.state == .idle)
+    }
 
-@MainActor
-@Test func commitAreaWithClipboardSinkCopiesAndReturnsToIdle() async throws {
-    let pb = FakePasteboard()
-    let c = makeController(pasteboard: pb)
-    c.start(mode: .area, sink: .toClipboard)
+    @Test("commitArea with clipboard sink writes to the pasteboard and returns to idle",
+          .timeLimit(.minutes(1)))
+    func commitAreaWithClipboardSinkCopiesAndReturnsToIdle() async throws {
+        let pb = FakePasteboard()
+        let c = makeController(pasteboard: pb)
+        c.start(mode: .area, sink: .toClipboard)
 
-    try await c.commitArea(CGRect(x: 0, y: 0, width: 10, height: 10), displayID: 1)
+        try await c.commitArea(CGRect(x: 0, y: 0, width: 10, height: 10), displayID: 1)
 
-    #expect(pb.writtenImages.count == 1)
-    #expect(c.session.state == .idle)
-}
+        #expect(pb.writtenImages.count == 1)
+        #expect(c.session.state == .idle)
+    }
 
-@MainActor
-@Test func cancelReturnsToIdle() {
-    let c = makeController()
-    c.start(mode: .window, sink: .toFile)
-    c.cancel()
-    #expect(c.session.state == .idle)
-}
+    @Test("cancel() returns the session to idle")
+    func cancelReturnsToIdle() {
+        let c = makeController()
+        c.start(mode: .window, sink: .toFile)
+        c.cancel()
+        #expect(c.session.state == .idle)
+    }
 
-@MainActor
-private func makeController(
-    fileWriter: FakeFileWriter = FakeFileWriter(),
-    previewOpener: FakePreviewOpener = FakePreviewOpener(),
-    pasteboard: FakePasteboard = FakePasteboard()
-) -> CaptureController {
-    CaptureController(
-        enumerator: FakeSCShareableContent(result: .success([])),
-        capturer: Capturer(manager: FakeScreenshotManager()),
-        fileSink: FileSink(
-            writer: fileWriter,
-            opener: previewOpener,
-            nowProvider: { Date(timeIntervalSince1970: 0) },
-            tempDirectoryProvider: { URL(fileURLWithPath: NSTemporaryDirectory()) }
-        ),
-        clipboardSink: ClipboardSink(pasteboard: pasteboard)
-    )
+    private func makeController(
+        fileWriter: FakeFileWriter = FakeFileWriter(),
+        previewOpener: FakePreviewOpener = FakePreviewOpener(),
+        pasteboard: FakePasteboard = FakePasteboard()
+    ) -> CaptureController {
+        CaptureController(
+            enumerator: FakeSCShareableContent(result: .success([])),
+            capturer: Capturer(manager: FakeScreenshotManager()),
+            fileSink: FileSink(
+                writer: fileWriter,
+                opener: previewOpener,
+                nowProvider: { Date(timeIntervalSince1970: 0) },
+                tempDirectoryProvider: { URL(fileURLWithPath: NSTemporaryDirectory()) }
+            ),
+            clipboardSink: ClipboardSink(pasteboard: pasteboard)
+        )
+    }
 }
 ```
 
@@ -1711,6 +1863,8 @@ git commit -m "feat: add CaptureController to orchestrate session and sinks"
 - Modify: `ScreenshotButton/ScreenshotButtonApp.swift`
 - Create: `ScreenshotButton/UI/MenuView.swift`
 
+The menu calls into the App via a `CaptureRequest` closure rather than touching `CaptureController` directly. This lets the App own both the controller AND the overlay manager and start them together — see Task 20 for why this matters (the `.onChange`-on-state pattern can't observe state transitions while the menu is closed).
+
 - [ ] **Step 1: Write `MenuView`**
 
 `ScreenshotButton/UI/MenuView.swift`:
@@ -1719,43 +1873,46 @@ import SwiftUI
 import AppKit
 
 struct MenuView: View {
-    let controller: CaptureController
     let launchAtLogin: LaunchAtLogin
+    let onCaptureRequested: (CaptureMode, SinkKind) -> Void
     @State private var launchAtLoginEnabled: Bool
 
-    init(controller: CaptureController, launchAtLogin: LaunchAtLogin) {
-        self.controller = controller
+    init(
+        launchAtLogin: LaunchAtLogin,
+        onCaptureRequested: @escaping (CaptureMode, SinkKind) -> Void
+    ) {
         self.launchAtLogin = launchAtLogin
+        self.onCaptureRequested = onCaptureRequested
         _launchAtLoginEnabled = State(initialValue: launchAtLogin.isEnabled)
     }
 
     var body: some View {
-        Button("Window to File")      { controller.start(mode: .window, sink: .toFile) }
-        Button("Area to File")        { controller.start(mode: .area,   sink: .toFile) }
+        Button("Window to File")      { onCaptureRequested(.window, .toFile) }
+        Button("Area to File")        { onCaptureRequested(.area,   .toFile) }
         Divider()
-        Button("Window to Clipboard") { controller.start(mode: .window, sink: .toClipboard) }
-        Button("Area to Clipboard")   { controller.start(mode: .area,   sink: .toClipboard) }
+        Button("Window to Clipboard") { onCaptureRequested(.window, .toClipboard) }
+        Button("Area to Clipboard")   { onCaptureRequested(.area,   .toClipboard) }
         Divider()
-        Toggle("Autolaunch", isOn: Binding(
-            get: { launchAtLoginEnabled },
-            set: { newValue in
+        Toggle("Autolaunch", isOn: $launchAtLoginEnabled)
+            .onChange(of: launchAtLoginEnabled) { _, newValue in
                 do {
                     try launchAtLogin.setEnabled(newValue)
-                    launchAtLoginEnabled = newValue
                 } catch {
-                    // Revert the toggle if registration failed.
+                    // Revert silently — the SMAppService failure is rare and
+                    // the user can try again. Future: surface via Notifier.
                     launchAtLoginEnabled = launchAtLogin.isEnabled
                 }
             }
-        ))
         Divider()
         Button("Quit ScreenshotButton") { NSApp.terminate(nil) }
-            .keyboardShortcut("q")
+            .keyboardShortcut("q", modifiers: .command)
     }
 }
 ```
 
 - [ ] **Step 2: Rewrite `ScreenshotButtonApp.swift` to mount `MenuBarExtra`**
+
+The icon is `viewfinder` (SF Symbol) rather than `camera` — more semantically aligned with screenshot tooling (the macOS Screenshot.app uses an analogous viewfinder glyph).
 
 ```swift
 import SwiftUI
@@ -1767,9 +1924,11 @@ struct ScreenshotButtonApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuView(controller: controller, launchAtLogin: launchAtLogin)
+            MenuView(launchAtLogin: launchAtLogin) { mode, sink in
+                controller.start(mode: mode, sink: sink)
+            }
         } label: {
-            Image(systemName: "camera")
+            Image(systemName: "viewfinder")
                 .accessibilityLabel("ScreenshotButton")
         }
     }
@@ -1798,7 +1957,7 @@ Expected: `** BUILD SUCCEEDED **`.
 
 - [ ] **Step 4: Manual verification**
 
-Run the app. Expected: a camera icon appears in the menu bar. Clicking it shows the six-item menu from the design spec. Toggling Autolaunch should not crash (macOS may prompt once for approval). Quit works. No Dock icon.
+Run the app. Expected: a viewfinder icon appears in the menu bar. Clicking it shows the six-item menu from the design spec. Toggling Autolaunch should not crash (macOS may prompt once for approval). Quit works. No Dock icon.
 
 - [ ] **Step 5: Commit**
 
@@ -1981,6 +2140,8 @@ final class OverlayView: NSView {
 
 - [ ] **Step 3: Implement `OverlayManager`**
 
+`OverlayManager` owns the structured Task it spawns and cancels it in `dismiss()`. It re-checks `session.state == .capturing` after the SCK await so a fast Esc doesn't strand panels onscreen. It does NOT spawn `Task { @MainActor in ... }` from inside its own methods because the class is already `@MainActor` — the implicit isolation suffices.
+
 `ScreenshotButton/UI/OverlayManager.swift`:
 ```swift
 import AppKit
@@ -1989,19 +2150,41 @@ import CoreGraphics
 @MainActor
 final class OverlayManager {
     let controller: CaptureController
+    let notifier: Notifier
     private(set) var panels: [OverlayPanel] = []
     private var views: [OverlayView] = []
     private var windows: [CapturedWindow] = []
+    private var presentTask: Task<Void, Never>?
+    private var deliveryTask: Task<Void, Never>?
 
     var mode: CaptureMode { controller.session.mode }
 
-    init(controller: CaptureController) {
+    init(controller: CaptureController, notifier: Notifier) {
         self.controller = controller
+        self.notifier = notifier
     }
 
-    func present() async {
-        guard controller.session.state == .capturing else { return }
-        windows = (try? await controller.enumerateWindows()) ?? []
+    /// Begins a capture session: starts the controller, presents per-screen
+    /// overlays, and enumerates windows. Cancellable via `dismiss()`.
+    func begin(mode: CaptureMode, sink: SinkKind) {
+        guard controller.session.state == .idle else { return }
+        controller.start(mode: mode, sink: sink)
+        presentTask = Task { [weak self] in
+            await self?.present()
+        }
+    }
+
+    private func present() async {
+        let fetched = await controller.enumerateWindowsOrHandle(notifier: notifier) { [notifier] in
+            notifier.postPermissionDenied()
+        }
+        // Re-check state — user may have hit Esc on the menu while we awaited.
+        guard controller.session.state == .capturing, let fetched else {
+            tearDown()
+            controller.cancel()
+            return
+        }
+        windows = fetched
         panels = NSScreen.screens.map(OverlayPanel.init(screen:))
         views = panels.enumerated().map { (idx, panel) in
             let v = OverlayView(screen: NSScreen.screens[idx])
@@ -2024,12 +2207,19 @@ final class OverlayManager {
     func didClickWindow(at point: CGPoint, on view: OverlayView) {
         guard let target = HitTesting.topmost(at: point, in: windows) else {
             dismiss()
-            controller.cancel()
             return
         }
-        dismiss()
-        Task { @MainActor in
-            try? await controller.commitWindow(target)
+        tearDown()
+        deliveryTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await self.controller.commitWindow(target)
+            } catch is CancellationError {
+                self.controller.cancel()
+            } catch {
+                self.notifier.post(title: "Capture failed", body: "Please try again.")
+                self.controller.cancel()
+            }
         }
     }
 
@@ -2037,7 +2227,6 @@ final class OverlayManager {
         let rect = AreaGeometry.rectangle(from: start, to: end)
         if AreaGeometry.isCancel(rect) {
             dismiss()
-            controller.cancel()
             return
         }
         let displayID = view.screen.displayID
@@ -2046,15 +2235,22 @@ final class OverlayManager {
             y: rect.origin.y - view.screen.frame.origin.y,
             width: rect.width, height: rect.height
         )
-        dismiss()
-        Task { @MainActor in
-            try? await controller.commitArea(localRect, displayID: displayID)
+        tearDown()
+        deliveryTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await self.controller.commitArea(localRect, displayID: displayID)
+            } catch is CancellationError {
+                self.controller.cancel()
+            } catch {
+                self.notifier.post(title: "Capture failed", body: "Please try again.")
+                self.controller.cancel()
+            }
         }
     }
 
     func didPressEscape() {
         dismiss()
-        controller.cancel()
     }
 
     func didPressSpace() {
@@ -2063,7 +2259,16 @@ final class OverlayManager {
         views.forEach { $0.setNeedsDisplay($0.bounds) }
     }
 
-    private func dismiss() {
+    /// User-initiated cancel (Esc, click-empty-area, etc.). Tears down UI,
+    /// cancels in-flight tasks, and resets the session.
+    func dismiss() {
+        tearDown()
+        presentTask?.cancel(); presentTask = nil
+        deliveryTask?.cancel(); deliveryTask = nil
+        controller.cancel()
+    }
+
+    private func tearDown() {
         panels.forEach { $0.orderOut(nil) }
         panels.removeAll()
         views.removeAll()
@@ -2078,37 +2283,41 @@ private extension NSScreen {
 }
 ```
 
-- [ ] **Step 4: Wire `OverlayManager` into the app**
+`enumerateWindowsOrHandle` is added to `CaptureController` in Task 21.
 
-Modify `ScreenshotButtonApp.swift` to observe `CaptureController` state transitions and present/dismiss overlays:
+- [ ] **Step 4: Wire `OverlayManager` into the app via the menu closure (no `.onChange`)**
+
+State transitions are driven by direct method calls from the menu, not by observation. The App owns the controller, overlays, and notifier — all created together in `init` so they share the same `Notifier` instance (Task 21 needs this so notification authorization is requested once).
 
 ```swift
 import SwiftUI
 
 @main
 struct ScreenshotButtonApp: App {
-    @State private var controller: CaptureController = .live()
-    @State private var overlays: OverlayManager?
+    @State private var controller: CaptureController
+    @State private var overlays: OverlayManager
     private let launchAtLogin = LaunchAtLogin()
+
+    init() {
+        let notifier = Notifier()
+        let controller = CaptureController.live()
+        _controller = State(initialValue: controller)
+        _overlays = State(initialValue: OverlayManager(controller: controller, notifier: notifier))
+    }
 
     var body: some Scene {
         MenuBarExtra {
-            MenuView(controller: controller, launchAtLogin: launchAtLogin)
-                .onChange(of: controller.session.state) { _, newState in
-                    if newState == .capturing && overlays == nil {
-                        let manager = OverlayManager(controller: controller)
-                        overlays = manager
-                        Task { await manager.present() }
-                    } else if newState == .idle {
-                        overlays = nil
-                    }
-                }
+            MenuView(launchAtLogin: launchAtLogin) { mode, sink in
+                overlays.begin(mode: mode, sink: sink)
+            }
         } label: {
-            Image(systemName: "camera").accessibilityLabel("ScreenshotButton")
+            Image(systemName: "viewfinder").accessibilityLabel("ScreenshotButton")
         }
     }
 }
 ```
+
+The `.onChange(of: controller.session.state)` pattern from the previous draft was a real correctness bug — `MenuBarExtra` content is only instantiated while the menu is open, so state transitions during capture would never fire the observer. Driving overlay lifecycle through a direct menu callback removes that hazard entirely.
 
 - [ ] **Step 5: Build and do an end-to-end smoke test**
 
@@ -2130,70 +2339,119 @@ git commit -m "feat: add per-screen overlay and end-to-end capture flow"
 
 ---
 
-## Task 21: Permission-denied onboarding + notification-based errors
+## Task 21: Notification-based errors and permission re-prompt
 
 **Files:**
-- Create: `ScreenshotButton/UI/PermissionWindow.swift`
 - Create: `ScreenshotButton/Services/Notifier.swift`
 - Modify: `ScreenshotButton/Session/CaptureController.swift` (catch `SCStreamError` and forward)
-- Modify: `ScreenshotButton/ScreenshotButtonApp.swift` (show permission window when needed)
+
+The first-time TCC prompt is shown by macOS itself when `SCShareableContent.current` is called. We don't pre-prompt and we don't ship our own onboarding window. If the user declines (or revokes later), the `Notifier` posts a banner with an action that opens the Privacy pane. This is the most macOS-idiomatic path and avoids the `MenuBarExtra`-content-lifecycle hazard the in-app permission window would have introduced.
 
 - [ ] **Step 1: Implement `Notifier`**
+
+The notifier registers a "Open Settings" notification category at construction time and requests authorization on first use. `add(_:)` silently drops notifications without authorization.
 
 `ScreenshotButton/Services/Notifier.swift`:
 ```swift
 import Foundation
 import UserNotifications
-
-@MainActor
-final class Notifier {
-    func post(title: String, body: String) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        let req = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(req)
-    }
-}
-```
-
-- [ ] **Step 2: Implement `PermissionWindow`**
-
-`ScreenshotButton/UI/PermissionWindow.swift`:
-```swift
-import SwiftUI
 import AppKit
 
-struct PermissionWindow: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("Screen Recording Access Required")
-                .font(.title2).bold()
-            Text("ScreenshotButton needs Screen Recording permission in System Settings to capture windows and regions.")
-                .multilineTextAlignment(.center)
-            HStack {
-                Button("Quit") { NSApp.terminate(nil) }
-                Button("Open Settings") {
-                    let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
-                    NSWorkspace.shared.open(url)
-                }
-                .keyboardShortcut(.defaultAction)
+@MainActor
+final class Notifier: NSObject {
+    private var didRequestAuth = false
+    static let openSettingsAction = "OPEN_SCREEN_RECORDING_SETTINGS"
+    static let permissionCategory = "PERMISSION_DENIED"
+    static let plainCategory = "PLAIN"
+
+    override init() {
+        super.init()
+        let openSettings = UNNotificationAction(
+            identifier: Self.openSettingsAction,
+            title: "Open Settings",
+            options: [.foreground]
+        )
+        let permission = UNNotificationCategory(
+            identifier: Self.permissionCategory,
+            actions: [openSettings],
+            intentIdentifiers: [],
+            options: []
+        )
+        let plain = UNNotificationCategory(
+            identifier: Self.plainCategory,
+            actions: [],
+            intentIdentifiers: [],
+            options: []
+        )
+        UNUserNotificationCenter.current().setNotificationCategories([permission, plain])
+        UNUserNotificationCenter.current().delegate = self
+    }
+
+    func post(title: String, body: String) {
+        Task { [weak self] in
+            await self?.ensureAuthorization()
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            content.categoryIdentifier = Self.plainCategory
+            let req = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+            try? await UNUserNotificationCenter.current().add(req)
+        }
+    }
+
+    func postPermissionDenied() {
+        Task { [weak self] in
+            await self?.ensureAuthorization()
+            let content = UNMutableNotificationContent()
+            content.title = "Screen Recording permission required"
+            content.body = "ScreenshotButton needs Screen Recording access in System Settings to capture windows and regions."
+            content.categoryIdentifier = Self.permissionCategory
+            let req = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+            try? await UNUserNotificationCenter.current().add(req)
+        }
+    }
+
+    private func ensureAuthorization() async {
+        guard !didRequestAuth else { return }
+        didRequestAuth = true
+        _ = try? await UNUserNotificationCenter.current()
+            .requestAuthorization(options: [.alert, .sound])
+    }
+}
+
+extension Notifier: UNUserNotificationCenterDelegate {
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        if response.actionIdentifier == Self.openSettingsAction {
+            await MainActor.run {
+                let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+                NSWorkspace.shared.open(url)
             }
         }
-        .padding(24)
-        .frame(minWidth: 420)
+    }
+
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .sound]
     }
 }
 ```
 
-- [ ] **Step 3: Make `CaptureController` surface permission errors**
+- [ ] **Step 2: Make `CaptureController` surface permission errors via the notifier**
 
 Add to `CaptureController`:
 ```swift
 import ScreenCaptureKit
 
 extension CaptureController {
-    func enumerateWindowsOrHandle(notifier: Notifier, onPermissionDenied: () -> Void) async -> [CapturedWindow]? {
+    func enumerateWindowsOrHandle(
+        notifier: Notifier,
+        onPermissionDenied: @MainActor () -> Void
+    ) async -> [CapturedWindow]? {
         do {
             return try await enumerateWindows()
         } catch let error as SCStreamError where error.code == .userDeclined {
@@ -2207,83 +2465,32 @@ extension CaptureController {
 }
 ```
 
-Update `OverlayManager.present()` to use the new helper.
+`OverlayManager.present()` (Task 20 Step 3) calls this helper. Its `onPermissionDenied` closure is set by the App in Task 20 Step 4 — replace the placeholder body that called `controller.requestPermissionWindow()` with a direct `notifier.postPermissionDenied()` call. Remove the `requestPermissionWindow()` method from `CaptureController` entirely; it's no longer needed.
 
-- [ ] **Step 4: Wire the permission window into the app**
+In `ScreenshotButton/UI/OverlayManager.swift`, the `present()` call becomes:
 
-In `ScreenshotButtonApp.swift`:
 ```swift
-import SwiftUI
-
-@main
-struct ScreenshotButtonApp: App {
-    @State private var controller: CaptureController = .live()
-    @State private var overlays: OverlayManager?
-    @State private var showPermissionWindow = false
-    private let launchAtLogin = LaunchAtLogin()
-    private let notifier = Notifier()
-
-    var body: some Scene {
-        MenuBarExtra {
-            MenuView(controller: controller, launchAtLogin: launchAtLogin)
-                .onChange(of: controller.session.state) { _, newState in
-                    handleStateChange(newState)
-                }
-        } label: {
-            Image(systemName: "camera").accessibilityLabel("ScreenshotButton")
-        }
-
-        Window("Screen Recording", id: "permission") {
-            PermissionWindow()
-        }
-        .windowResizability(.contentSize)
-        .defaultPosition(.center)
-    }
-
-    @MainActor
-    private func handleStateChange(_ newState: CaptureSession.State) {
-        if newState == .capturing && overlays == nil {
-            let manager = OverlayManager(controller: controller)
-            overlays = manager
-            Task { await presentOverlays(manager) }
-        } else if newState == .idle {
-            overlays = nil
-        }
-    }
-
-    @MainActor
-    private func presentOverlays(_ manager: OverlayManager) async {
-        let windows = await controller.enumerateWindowsOrHandle(notifier: notifier) {
-            NSApp.activate(ignoringOtherApps: true)
-            // Open permission window via environment action
-        }
-        if windows == nil {
-            overlays = nil
-            return
-        }
-        await manager.present()
-    }
+let fetched = await controller.enumerateWindowsOrHandle(notifier: notifier) { [notifier] in
+    notifier.postPermissionDenied()
 }
 ```
 
-This step is the one place where the plan acknowledges an implementation-time judgment call: SwiftUI's `openWindow` environment action can only be read inside a view. The simplest path is to have `MenuView` receive an `@Environment(\.openWindow)` and pass a closure to `CaptureController` for opening the permission window. If the implementing agent finds a cleaner way (e.g., observing a published `@State var` on `ScreenshotButtonApp`), that is fine — both approaches satisfy the user-visible behavior described in the design.
-
-- [ ] **Step 5: Build**
+- [ ] **Step 3: Build**
 
 ```bash
 xcodebuild build -project ScreenshotButton.xcodeproj -scheme ScreenshotButton \
   CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO -quiet
 ```
 
-- [ ] **Step 6: Manual verification**
+- [ ] **Step 4: Manual verification**
 
-On a test Mac, revoke Screen Recording permission and click a capture item. Expected: permission window appears with working Quit and Open Settings buttons. Grant the permission from Settings, restart the app, verify capture now works.
+On a test Mac, revoke Screen Recording permission for ScreenshotButton (or run the app fresh and decline the prompt). Click a capture item. Expected: a notification banner appears with title "Screen Recording permission required" and an "Open Settings" action that opens the correct Privacy pane. Grant permission, then re-launch — capture works. Subsequent permission revocations should produce the same banner on the next attempt.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add ScreenshotButton ScreenshotButton.xcodeproj
-git commit -m "feat: add permission onboarding window and notification-based errors"
+git commit -m "feat: add notification-based error handling for permissions and capture failures"
 ```
 
 ---
@@ -2293,17 +2500,25 @@ git commit -m "feat: add permission onboarding window and notification-based err
 **Files:**
 - Modify: `ScreenshotButton/ScreenshotButtonApp.swift`
 
-- [ ] **Step 1: Add a launch hook**
+Pruning runs in a `.task` on the menu-bar label rather than `App.init()`. `init` would block the main thread before the scene mounts; `.task` lets the launch finish first and runs cleanup off the critical path.
 
-In `ScreenshotButtonApp.init()` or the `MenuBarExtra` `.onAppear`:
+- [ ] **Step 1: Add a `.task` modifier on the `MenuBarExtra` label**
 
 ```swift
-init() {
-    let dir = URL(fileURLWithPath: NSTemporaryDirectory())
-        .appendingPathComponent(FileSink.folderName, isDirectory: true)
-    TempCleanup.prune(directory: dir, olderThan: 60 * 60 * 24)
+} label: {
+    Image(systemName: "viewfinder")
+        .accessibilityLabel("ScreenshotButton")
+        .task {
+            await Task.detached(priority: .background) {
+                let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+                    .appendingPathComponent(FileSink.folderName, isDirectory: true)
+                TempCleanup.prune(directory: dir, olderThan: 60 * 60 * 24)
+            }.value
+        }
 }
 ```
+
+`Task.detached(priority: .background)` runs the file-system work off the main actor; `await ...value` keeps the surrounding `.task` lifecycle intact (auto-cancelled if the label disappears, though for a `MenuBarExtra` label that's effectively never).
 
 - [ ] **Step 2: Build**
 
@@ -2555,7 +2770,7 @@ brew install --cask screenshotbutton
 
 ## Use
 
-1. Click the camera icon in the menu bar.
+1. Click the viewfinder icon in the menu bar.
 2. Choose **Window to File / Clipboard** or **Area to File / Clipboard**.
 3. In window mode, hover a window and click. In area mode, drag a rectangle.
 4. Press **Space** to swap mode mid-capture. Press **Esc** to cancel.
@@ -2603,7 +2818,8 @@ MIT — see LICENSE.
 ## Known limitations
 
 - Drop shadow is not composited on window captures.
-- Permission window UX relies on macOS restarting the app after TCC grant.
+- After granting Screen Recording permission, macOS automatically restarts the app — expected platform behavior, not a bug.
+- Permission re-prompt UX is delivered via system notification; users must have notifications enabled for ScreenshotButton to see it.
 ```
 
 - [ ] **Step 4: Commit**
