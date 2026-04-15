@@ -66,3 +66,6 @@ CLAUDE.local.md
 _reference/
 _gitignored/
 .DS_Store
+buildServer.json
+build/
+*.profraw

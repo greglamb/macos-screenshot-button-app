@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# bin/regen — fast regenerate after adding/removing source files.
+# Skips brew checks (use bin/setup the first time). Safe to run anytime.
+set -euo pipefail
+
+xcodegen generate
+xcode-build-server config -scheme ScreenshotButton -project ScreenshotButton.xcodeproj >/dev/null
+echo "==> Project + buildServer.json regenerated."

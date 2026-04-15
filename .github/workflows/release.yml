@@ -1,0 +1,168 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project from Project.yml
+        run: xcodegen generate
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Install signing certificate
+        env:
+          CERTIFICATE_P12: ${{ secrets.CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          CERT_PATH=$RUNNER_TEMP/certificate.p12
+          echo "$CERTIFICATE_P12" | base64 --decode > "$CERT_PATH"
+          security import "$CERT_PATH" \
+            -P "$CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Build Release
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcodebuild \
+            -project ScreenshotButton.xcodeproj \
+            -scheme ScreenshotButton \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            ENABLE_HARDENED_RUNTIME=YES \
+            CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
+            OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime" \
+            MARKETING_VERSION=${{ steps.version.outputs.version }} \
+            build
+
+      - name: Notarize app
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          APP_PATH="build/Build/Products/Release/ScreenshotButton.app"
+          ditto -c -k --keepParent "$APP_PATH" ScreenshotButton.zip
+
+          SUBMISSION_ID=$(xcrun notarytool submit ScreenshotButton.zip \
+            --apple-id "$APPLE_ID" \
+            --password "$APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --output-format json | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+          STATUS=$(xcrun notarytool info "$SUBMISSION_ID" \
+            --apple-id "$APPLE_ID" \
+            --password "$APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --output-format json | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])")
+
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "::error::Notarization failed with status: $STATUS"
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APP_SPECIFIC_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID"
+            exit 1
+          fi
+
+          xcrun stapler staple "$APP_PATH"
+
+      - name: Create DMG
+        id: dmg
+        run: |
+          APP_PATH="build/Build/Products/Release/ScreenshotButton.app"
+          VERSION=${{ steps.version.outputs.version }}
+          DMG_NAME="ScreenshotButton-${VERSION}.dmg"
+
+          mkdir -p dmg_contents
+          cp -R "$APP_PATH" dmg_contents/
+          ln -s /Applications dmg_contents/Applications
+
+          hdiutil create \
+            -volname "ScreenshotButton" \
+            -srcfolder dmg_contents \
+            -ov -format UDZO \
+            "$DMG_NAME"
+
+          codesign --force --sign "Developer ID Application" --timestamp "$DMG_NAME"
+
+          DMG_SHA=$(shasum -a 256 "$DMG_NAME" | awk '{print $1}')
+          echo "dmg_name=$DMG_NAME" >> "$GITHUB_OUTPUT"
+          echo "dmg_sha=$DMG_SHA" >> "$GITHUB_OUTPUT"
+
+      # Bump the cask BEFORE creating the GitHub release. If the bump fails (e.g. a
+      # concurrent push to main), we abort and never publish a release that points
+      # at a cask with a 0.0.0/zero-SHA. Users stay on the prior release until we fix
+      # the conflict by hand and re-tag.
+      - name: Update cask with pinned SHA and push to main
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DMG_SHA: ${{ steps.dmg.outputs.dmg_sha }}
+          CASK_PATH: Casks/screenshotbutton.rb
+        run: |
+          # Save the DMG so it survives the branch switch (it's outside the work tree).
+          DMG_TMP="$RUNNER_TEMP/${{ steps.dmg.outputs.dmg_name }}"
+          cp "${{ steps.dmg.outputs.dmg_name }}" "$DMG_TMP"
+
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+
+          sed -i.bak -E "s/^(\s*version) \"[^\"]*\"/\1 \"${VERSION}\"/" "$CASK_PATH"
+          sed -i.bak -E "s/^(\s*sha256) \"[^\"]*\"/\1 \"${DMG_SHA}\"/" "$CASK_PATH"
+          rm -f "${CASK_PATH}.bak"
+
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name  "github-actions[bot]"
+          git add "$CASK_PATH"
+          git commit -m "chore(cask): bump screenshotbutton to v${VERSION}"
+          git push origin main
+
+          # Restore the DMG file path the next step expects.
+          cp "$DMG_TMP" "${{ steps.dmg.outputs.dmg_name }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.dmg.outputs.dmg_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
