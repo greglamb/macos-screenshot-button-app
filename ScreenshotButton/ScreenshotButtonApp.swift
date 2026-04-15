@@ -19,7 +19,16 @@ struct ScreenshotButtonApp: App {
                 overlays.begin(mode: mode, sink: sink)
             }
         } label: {
-            Image(systemName: "viewfinder").accessibilityLabel("ScreenshotButton")
+            Image(systemName: "viewfinder")
+                .accessibilityLabel("ScreenshotButton")
+                .task {
+                    let folderName = FileSink.folderName
+                    await Task.detached(priority: .background) {
+                        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+                            .appendingPathComponent(folderName, isDirectory: true)
+                        TempCleanup.prune(directory: dir, olderThan: 60 * 60 * 24)
+                    }.value
+                }
         }
     }
 }
