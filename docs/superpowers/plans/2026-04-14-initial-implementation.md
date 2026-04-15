@@ -488,20 +488,15 @@ struct CapturedWindowTests {
 ```swift
 import CoreGraphics
 
-public struct CapturedWindow: Equatable, Sendable, Identifiable {
-    public let id: CGWindowID
-    public let frame: CGRect        // global screen coordinates
-    public let title: String?
-    public let ownerName: String?
-
-    public init(id: CGWindowID, frame: CGRect, title: String?, ownerName: String?) {
-        self.id = id
-        self.frame = frame
-        self.title = title
-        self.ownerName = ownerName
-    }
+struct CapturedWindow: Equatable, Sendable, Identifiable {
+    let id: CGWindowID
+    let frame: CGRect        // global screen coordinates
+    let title: String?
+    let ownerName: String?
 }
 ```
+
+(`internal` access — this is an app target, not a library. The compiler-synthesized memberwise init is sufficient; no explicit init needed.)
 
 - [ ] **Step 4: Run — expect PASS.**
 

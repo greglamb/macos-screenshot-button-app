@@ -67,3 +67,5 @@ _reference/
 _gitignored/
 .DS_Store
 buildServer.json
+build/
+*.profraw
