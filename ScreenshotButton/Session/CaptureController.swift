@@ -2,6 +2,7 @@ import Foundation
 import CoreGraphics
 import Observation
 import OSLog
+import ScreenCaptureKit
 
 @MainActor
 @Observable
@@ -58,6 +59,23 @@ final class CaptureController {
             _ = try await fileSink.deliver(image)
         case .toClipboard:
             clipboardSink.deliver(image)
+        }
+    }
+}
+
+extension CaptureController {
+    func enumerateWindowsOrHandle(
+        notifier: Notifier,
+        onPermissionDenied: @MainActor () -> Void
+    ) async -> [CapturedWindow]? {
+        do {
+            return try await enumerateWindows()
+        } catch let error as SCStreamError where error.code == .userDeclined {
+            onPermissionDenied()
+            return nil
+        } catch {
+            notifier.post(title: "Capture failed", body: "Please try again.")
+            return nil
         }
     }
 }

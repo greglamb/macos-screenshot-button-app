@@ -1,15 +1,6 @@
 import AppKit
 import CoreGraphics
 
-// Temporary stub — Task 21 replaces this with a real implementation in
-// ScreenshotButton/Services/Notifier.swift (and removes this stub).
-@MainActor
-final class Notifier {
-    init() {}
-    func post(title: String, body: String) {}
-    func postPermissionDenied() {}
-}
-
 @MainActor
 final class OverlayManager {
     let controller: CaptureController
@@ -38,12 +29,11 @@ final class OverlayManager {
     }
 
     private func present() async {
-        // Direct enumeration here for Task 20; Task 21 will route this through
-        // a `enumerateWindowsOrHandle` helper that surfaces TCC failures via
-        // notifier.postPermissionDenied().
-        let fetched = (try? await controller.enumerateWindows()) ?? []
+        let fetched = await controller.enumerateWindowsOrHandle(notifier: notifier) { [notifier] in
+            notifier.postPermissionDenied()
+        }
         // Re-check state — user may have hit Esc on the menu while we awaited.
-        guard controller.session.state == .capturing else {
+        guard controller.session.state == .capturing, let fetched else {
             tearDown()
             controller.cancel()
             return

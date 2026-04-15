@@ -29,6 +29,7 @@
 		76B019FA97AE576614C6135C /* FileSinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35D2FD41EA5FA340276E90B0 /* FileSinkTests.swift */; };
 		78A76B9C670FF73FF346FC0A /* WindowEnumerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D3E832F52B33D9505F25E3 /* WindowEnumerator.swift */; };
 		7D167F83C328EC2798221358 /* FakeScreenshotManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B5A2C8A51D99C29510F0839 /* FakeScreenshotManager.swift */; };
+		8CEAEB1D39769F238A6016DC /* Notifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE35091118D1BA5658EB4541 /* Notifier.swift */; };
 		8DFFE82A20D34F449669008B /* CapturerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F34F2E60AF4AFFBBB516384D /* CapturerTests.swift */; };
 		91770F7C772F735D5BB7D5A2 /* OverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C72ACA904C4A267225F71D /* OverlayPanel.swift */; };
 		957C8C7B8486A8BC8B64FB4B /* CapturedWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA9A09E94780AA9E2B55A99 /* CapturedWindow.swift */; };
@@ -115,6 +116,7 @@
 		F6D46CCA27BDB846321CDA63 /* ScreenshotButtonApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotButtonApp.swift; sourceTree = "<group>"; };
 		F9D3D2D56BEE57CFC38739A0 /* SinkKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SinkKind.swift; sourceTree = "<group>"; };
 		FD47F328DBCC45EBB36A5D8A /* TempCleanupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempCleanupTests.swift; sourceTree = "<group>"; };
+		FE35091118D1BA5658EB4541 /* Notifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifier.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -165,6 +167,7 @@
 				83D5C7D7713FE2DDA99D5BEA /* FileSink.swift */,
 				F1498D9C9067CDABBE29E8A6 /* FileWriting.swift */,
 				5EA64D9F703B88977F39F3DC /* LaunchAtLogin.swift */,
+				FE35091118D1BA5658EB4541 /* Notifier.swift */,
 				B7E3BD871ACC45D861B1AA7E /* PasteboardWriting.swift */,
 				4EF8FF0A44108EF713723C8E /* PNGEncoder.swift */,
 				8EADA8D8E7DDABF097BDFE1B /* PreviewOpening.swift */,
@@ -358,6 +361,7 @@
 				BCE9374E1274B69F1A292895 /* HitTesting.swift in Sources */,
 				29C5C4EE7CFD3C1DDE0121B7 /* LaunchAtLogin.swift in Sources */,
 				E1AE2C8F03892BE9AE2CCAB0 /* MenuView.swift in Sources */,
+				8CEAEB1D39769F238A6016DC /* Notifier.swift in Sources */,
 				AD825BA00B11FB8F856DC33E /* OverlayManager.swift in Sources */,
 				91770F7C772F735D5BB7D5A2 /* OverlayPanel.swift in Sources */,
 				FA51629E5F000C6E99C29ED9 /* OverlayView.swift in Sources */,
