@@ -1,6 +1,9 @@
 import AppKit
 import CoreGraphics
 import ScreenCaptureKit
+import os
+
+private let overlayLog = Logger(subsystem: "dev.greglamb.ScreenshotButton", category: "overlay")
 
 @MainActor
 final class OverlayManager {
@@ -139,6 +142,10 @@ final class OverlayManager {
 
 private extension NSScreen {
     var displayID: CGDirectDisplayID {
-        (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
+        if let number = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber {
+            return number.uint32Value
+        }
+        overlayLog.error("NSScreen missing NSScreenNumber; falling back to CGMainDisplayID()")
+        return CGMainDisplayID()
     }
 }

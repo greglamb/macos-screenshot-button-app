@@ -3,13 +3,35 @@ import UserNotifications
 import AppKit
 
 @MainActor
-final class Notifier: NSObject {
+protocol URLOpening {
+    func open(_ url: URL)
+}
+
+@MainActor
+struct SystemURLOpener: URLOpening {
+    func open(_ url: URL) { NSWorkspace.shared.open(url) }
+}
+
+@MainActor
+protocol Notifying {
+    func post(title: String, body: String)
+    func postPermissionDenied()
+}
+
+@MainActor
+final class Notifier: NSObject, Notifying {
     private var didRequestAuth = false
+    private let opener: any URLOpening
     nonisolated static let openSettingsAction = "OPEN_SCREEN_RECORDING_SETTINGS"
     nonisolated static let permissionCategory = "PERMISSION_DENIED"
     nonisolated static let plainCategory = "PLAIN"
 
-    override init() {
+    static let screenRecordingSettingsURL = URL(
+        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+    )!
+
+    init(opener: any URLOpening = SystemURLOpener()) {
+        self.opener = opener
         super.init()
         let openSettings = UNNotificationAction(
             identifier: Self.openSettingsAction,
@@ -34,7 +56,7 @@ final class Notifier: NSObject {
 
     func post(title: String, body: String) {
         Task { [weak self] in
-            await self?.ensureAuthorization()
+            await self?.requestAuthorization()
             let content = UNMutableNotificationContent()
             content.title = title
             content.body = body
@@ -46,7 +68,7 @@ final class Notifier: NSObject {
 
     func postPermissionDenied() {
         Task { [weak self] in
-            await self?.ensureAuthorization()
+            await self?.requestAuthorization()
             let content = UNMutableNotificationContent()
             content.title = "Screen Recording permission required"
             content.body = "ScreenshotButton needs Screen Recording access in System Settings to capture windows and regions."
@@ -56,11 +78,19 @@ final class Notifier: NSObject {
         }
     }
 
-    private func ensureAuthorization() async {
+    func requestAuthorization() async {
         guard !didRequestAuth else { return }
         didRequestAuth = true
         _ = try? await UNUserNotificationCenter.current()
             .requestAuthorization(options: [.alert, .sound])
+    }
+
+    /// Test-visible seam for delegate action routing. `UNNotificationResponse.init`
+    /// is private, so we test the routing logic by calling this directly.
+    func handle(actionIdentifier: String) async {
+        if actionIdentifier == Self.openSettingsAction {
+            opener.open(Self.screenRecordingSettingsURL)
+        }
     }
 }
 
@@ -69,12 +99,7 @@ extension Notifier: UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
-        if response.actionIdentifier == Self.openSettingsAction {
-            await MainActor.run {
-                let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
-                NSWorkspace.shared.open(url)
-            }
-        }
+        await handle(actionIdentifier: response.actionIdentifier)
     }
 
     nonisolated func userNotificationCenter(
