@@ -62,6 +62,7 @@ fastlane/screenshots/**/*.png
 fastlane/test_output
 
 CLAUDE.local.md
+.claude/settings.local.json
 .worktrees/
 _reference/
 _gitignored/
