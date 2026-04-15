@@ -23,11 +23,5 @@
 ## Deferred from final code review (open for v1.1)
 
 - **Integration test for `OverlayManager`** — the most complex file in the repo (Tasks, cancellation, post-`await` state re-check) currently has zero direct tests. Coverage at the coordinator/UI seam is the highest-leverage gap.
-- **Test `Notifier` permission routing** by injecting a `URLOpening` protocol so the `Open Settings` action's `NSWorkspace.open(url)` call is verifiable.
 - **Re-entry handling in `OverlayManager.begin`** — currently a silent no-op when a session is already in flight. Consider dismissing the in-flight session first, or surfacing a console log.
-- **`MenuView` autolaunch toggle errors** — currently swallowed with a comment promising future `Notifier` integration. Wire it through.
-- **`Notifier.requestAuthorization` should fire eagerly on app launch**, not lazily on first `post`. Otherwise the first permission-denied banner can race the auth prompt.
-- **`Casks/screenshotbutton.rb` `zap trash:` path** — the app currently stores nothing under `~/Library/Preferences/dev.greglamb.ScreenshotButton.plist` (autolaunch state lives there only when `LaunchAtLogin.setEnabled(true)` writes via `UserDefaults.standard`). Either drop the zap entry once verified empty, or expand it once preferences ship.
-- **`MenuView` "Autolaunch" label** — macOS conventional wording is "Launch at Login" (System Settings uses exactly that).
-- **`OverlayManager.displayID` extension** — falls back to `0` if `NSScreenNumber` is missing; `0` is a valid display ID. Prefer `CGMainDisplayID()` or assert.
-- **`FileSink` allocates a new `DateFormatter` per call** — cache the formatter, or switch to `ISO8601DateFormatter`.
+- **`Casks/screenshotbutton.rb` `zap trash:` audit (resolved 2026-04-14):** Confirmed `LaunchAtLogin.setEnabled` writes the `launchAtLogin` flag via `UserDefaults.standard`, which lands in `~/Library/Preferences/dev.greglamb.ScreenshotButton.plist`. The existing `zap trash:` entry is correct; no change needed.
