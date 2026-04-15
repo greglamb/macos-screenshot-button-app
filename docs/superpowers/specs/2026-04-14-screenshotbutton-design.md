@@ -18,7 +18,7 @@ A `MenuBarExtra` with a `viewfinder` SF Symbol icon and six items, matching the 
 2. Area to File
 3. Window to Clipboard
 4. Area to Clipboard
-5. Autolaunch (toggle)
+5. Launch at Login (toggle)
 6. Quit ScreenshotButton
 
 ### Behavior per capture mode
@@ -34,7 +34,7 @@ A `MenuBarExtra` with a `viewfinder` SF Symbol icon and six items, matching the 
 - **File modes.** Write PNG to `NSTemporaryDirectory()/ScreenshotButton/ScreenshotButton-YYYY-MM-DD-HH-mm-ss.png`, then `NSWorkspace.shared.open(...)` on Preview.app. The user saves from Preview.
 - **Clipboard modes.** Copy to `NSPasteboard.general` as `NSImage`, so any target app can request its preferred representation (PDF, TIFF, raw PNG bytes).
 
-### Autolaunch
+### Launch at Login
 
 A `Toggle` bound to a `LaunchAtLogin` wrapper around `SMAppService.mainApp`. State mirrored into `UserDefaults` so the menu shows correct initial state on relaunch.
 

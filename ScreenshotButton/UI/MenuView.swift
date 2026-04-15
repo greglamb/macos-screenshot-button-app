@@ -22,7 +22,7 @@ struct MenuView: View {
         Button("Window to Clipboard") { onCaptureRequested(.window, .toClipboard) }
         Button("Area to Clipboard")   { onCaptureRequested(.area,   .toClipboard) }
         Divider()
-        Toggle("Autolaunch", isOn: $launchAtLoginEnabled)
+        Toggle("Launch at Login", isOn: $launchAtLoginEnabled)
             .onChange(of: launchAtLoginEnabled) { _, newValue in
                 do {
                     try launchAtLogin.setEnabled(newValue)

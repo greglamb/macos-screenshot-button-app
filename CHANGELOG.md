@@ -30,3 +30,4 @@ All notable user-facing changes to ScreenshotButton are documented here.
   brew install --cask screenshotbutton
   ```
   The Xcode target, bundle identifier (`dev.greglamb.ScreenshotButton`), and DMG filename are unchanged.
+- Menu label changed from "Autolaunch" to "Launch at Login" to match macOS System Settings wording.
