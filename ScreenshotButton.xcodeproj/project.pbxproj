@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1563AA66F7B54115B0F232DB /* SinkKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9D3D2D56BEE57CFC38739A0 /* SinkKind.swift */; };
+		1B7C985B6C6E1D82C755650C /* Tags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E555FA3FC9F9A99F4F31FC3 /* Tags.swift */; };
+		29756FAE89C56F7606CD48D9 /* CaptureMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB8D45A7EE5FDC96ED8C89B0 /* CaptureMode.swift */; };
+		60814B521EB47EC6E3D168A5 /* CoreEnumsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6CB4B38F7BE111763D9E62 /* CoreEnumsTests.swift */; };
 		60B7FBF83B76EAEF47E9D4D1 /* ScreenshotButtonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D46CCA27BDB846321CDA63 /* ScreenshotButtonApp.swift */; };
 		D976C4E1F7ED6F412FE081D3 /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 900AF40AA1DBB5799808A929 /* SmokeTests.swift */; };
 /* End PBXBuildFile section */
@@ -22,11 +26,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7E555FA3FC9F9A99F4F31FC3 /* Tags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tags.swift; sourceTree = "<group>"; };
 		900AF40AA1DBB5799808A929 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		92F0C88BBA392EC118F2AC10 /* ScreenshotButton.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScreenshotButton.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA6CB4B38F7BE111763D9E62 /* CoreEnumsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreEnumsTests.swift; sourceTree = "<group>"; };
 		C1C5C2FFB71C997997336FFC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D9F35FB026936026D7A40CBD /* ScreenshotButtonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenshotButtonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DB8D45A7EE5FDC96ED8C89B0 /* CaptureMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureMode.swift; sourceTree = "<group>"; };
 		F6D46CCA27BDB846321CDA63 /* ScreenshotButtonApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotButtonApp.swift; sourceTree = "<group>"; };
+		F9D3D2D56BEE57CFC38739A0 /* SinkKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SinkKind.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -39,6 +47,15 @@
 			);
 			sourceTree = "<group>";
 		};
+		6427C36797D719EAEDA50FFD /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				DB8D45A7EE5FDC96ED8C89B0 /* CaptureMode.swift */,
+				F9D3D2D56BEE57CFC38739A0 /* SinkKind.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
 		A48C5228992FF787E62835A5 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -48,10 +65,20 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		C9A574CB7B4D0EECD86C791D /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				AA6CB4B38F7BE111763D9E62 /* CoreEnumsTests.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
 		CD14209A5AED125C5CE5E9A2 /* ScreenshotButtonTests */ = {
 			isa = PBXGroup;
 			children = (
 				900AF40AA1DBB5799808A929 /* SmokeTests.swift */,
+				C9A574CB7B4D0EECD86C791D /* Core */,
+				EA44B790C190C55EEFFC796B /* Support */,
 			);
 			path = ScreenshotButtonTests;
 			sourceTree = "<group>";
@@ -61,8 +88,17 @@
 			children = (
 				C1C5C2FFB71C997997336FFC /* Info.plist */,
 				F6D46CCA27BDB846321CDA63 /* ScreenshotButtonApp.swift */,
+				6427C36797D719EAEDA50FFD /* Core */,
 			);
 			path = ScreenshotButton;
+			sourceTree = "<group>";
+		};
+		EA44B790C190C55EEFFC796B /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				7E555FA3FC9F9A99F4F31FC3 /* Tags.swift */,
+			);
+			path = Support;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -142,7 +178,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				29756FAE89C56F7606CD48D9 /* CaptureMode.swift in Sources */,
 				60B7FBF83B76EAEF47E9D4D1 /* ScreenshotButtonApp.swift in Sources */,
+				1563AA66F7B54115B0F232DB /* SinkKind.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -150,7 +188,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				60814B521EB47EC6E3D168A5 /* CoreEnumsTests.swift in Sources */,
 				D976C4E1F7ED6F412FE081D3 /* SmokeTests.swift in Sources */,
+				1B7C985B6C6E1D82C755650C /* Tags.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
