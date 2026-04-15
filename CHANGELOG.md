@@ -21,3 +21,12 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 - Release workflow now bumps the cask **before** publishing the GitHub release, with `git fetch && checkout main && pull --ff-only` to prevent racing concurrent pushes; users never see a release whose cask points at the prior version.
 - Launch-time temp pruning runs in a structured `.task(priority: .background)` rather than an unstructured `Task.detached(...).value` nested inside `.task`.
+
+### Changed
+
+- Repository slug renamed from `macos-screenshot-button` to `macos-screenshot-button-app`. Install command is now:
+  ```
+  brew tap greglamb/macos-screenshot-button-app https://github.com/greglamb/macos-screenshot-button-app
+  brew install --cask screenshotbutton
+  ```
+  The Xcode target, bundle identifier (`dev.greglamb.ScreenshotButton`), and DMG filename are unchanged.
