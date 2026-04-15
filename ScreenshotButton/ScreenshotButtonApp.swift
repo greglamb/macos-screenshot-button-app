@@ -5,9 +5,9 @@ struct ScreenshotButtonApp: App {
     @State private var controller: CaptureController
     @State private var overlays: OverlayManager
     private let launchAtLogin = LaunchAtLogin()
+    private let notifier = Notifier()
 
     init() {
-        let notifier = Notifier()
         let controller = CaptureController.live()
         _controller = State(initialValue: controller)
         _overlays = State(initialValue: OverlayManager(controller: controller, notifier: notifier))
@@ -15,7 +15,7 @@ struct ScreenshotButtonApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuView(launchAtLogin: launchAtLogin) { mode, sink in
+            MenuView(launchAtLogin: launchAtLogin, notifier: notifier) { mode, sink in
                 overlays.begin(mode: mode, sink: sink)
             }
         } label: {

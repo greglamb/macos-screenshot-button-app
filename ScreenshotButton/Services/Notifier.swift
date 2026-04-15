@@ -13,7 +13,13 @@ struct SystemURLOpener: URLOpening {
 }
 
 @MainActor
-final class Notifier: NSObject {
+protocol Notifying {
+    func post(title: String, body: String)
+    func postPermissionDenied()
+}
+
+@MainActor
+final class Notifier: NSObject, Notifying {
     private var didRequestAuth = false
     private let opener: any URLOpening
     nonisolated static let openSettingsAction = "OPEN_SCREEN_RECORDING_SETTINGS"
