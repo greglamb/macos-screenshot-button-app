@@ -29,7 +29,22 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
+      # Graceful degradation: if signing secrets aren't populated, fall back to
+      # an unsigned build and publish a release whose notes explain how to
+      # bypass Gatekeeper. Only the signed path notarizes, signs the DMG, and
+      # bumps the Homebrew cask — brew users expect a pinned-SHA signed DMG,
+      # so leaving the cask at the prior version is correct for unsigned runs.
+      - name: Check signing configuration
+        id: signing
+        run: |
+          if [ -n "${{ secrets.CERTIFICATE_P12 }}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install signing certificate
+        if: steps.signing.outputs.available == 'true'
         env:
           CERTIFICATE_P12: ${{ secrets.CERTIFICATE_P12 }}
           CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
@@ -48,7 +63,8 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
-      - name: Build Release
+      - name: Build Release (signed)
+        if: steps.signing.outputs.available == 'true'
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
@@ -67,7 +83,21 @@ jobs:
             MARKETING_VERSION=${{ steps.version.outputs.version }} \
             build
 
+      - name: Build Release (unsigned)
+        if: steps.signing.outputs.available != 'true'
+        run: |
+          xcodebuild \
+            -project ScreenshotButton.xcodeproj \
+            -scheme ScreenshotButton \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            MARKETING_VERSION=${{ steps.version.outputs.version }} \
+            build
+
       - name: Notarize app
+        if: steps.signing.outputs.available == 'true'
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
@@ -117,17 +147,23 @@ jobs:
             -ov -format UDZO \
             "$DMG_NAME"
 
-          codesign --force --sign "Developer ID Application" --timestamp "$DMG_NAME"
-
           DMG_SHA=$(shasum -a 256 "$DMG_NAME" | awk '{print $1}')
           echo "dmg_name=$DMG_NAME" >> "$GITHUB_OUTPUT"
           echo "dmg_sha=$DMG_SHA" >> "$GITHUB_OUTPUT"
 
+      - name: Sign DMG
+        if: steps.signing.outputs.available == 'true'
+        run: |
+          codesign --force --sign "Developer ID Application" --timestamp "${{ steps.dmg.outputs.dmg_name }}"
+
       # Bump the cask BEFORE creating the GitHub release. If the bump fails (e.g. a
       # concurrent push to main), we abort and never publish a release that points
       # at a cask with a 0.0.0/zero-SHA. Users stay on the prior release until we fix
-      # the conflict by hand and re-tag.
+      # the conflict by hand and re-tag. Skipped on unsigned builds — brew users
+      # expect a pinned-SHA signed DMG, so the cask should keep pointing at the
+      # last signed release.
       - name: Update cask with pinned SHA and push to main
+        if: steps.signing.outputs.available == 'true'
         env:
           VERSION: ${{ steps.version.outputs.version }}
           DMG_SHA: ${{ steps.dmg.outputs.dmg_sha }}
@@ -154,13 +190,40 @@ jobs:
           # Restore the DMG file path the next step expects.
           cp "$DMG_TMP" "${{ steps.dmg.outputs.dmg_name }}"
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release (signed)
+        if: steps.signing.outputs.available == 'true'
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.dmg.outputs.dmg_name }}
           generate_release_notes: true
           draft: false
           prerelease: false
+          append_body: true
+          body: |
+            📋 See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for full details.
+
+      - name: Create GitHub Release (unsigned)
+        if: steps.signing.outputs.available != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.dmg.outputs.dmg_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          append_body: true
+          body: |
+            ⚠️ **Unsigned build** — this release was not code-signed or notarized, so macOS Gatekeeper will block it by default.
+
+            To install anyway:
+            1. Download the `.dmg`, open it, drag `ScreenshotButton.app` to `/Applications`.
+            2. Right-click the app → **Open** (once), then confirm. Or remove the quarantine attribute:
+               ```
+               xattr -cr /Applications/ScreenshotButton.app
+               ```
+
+            The Homebrew cask is not updated for unsigned releases — it continues to point at the prior signed build. For a normal `brew install` experience, wait for a signed release.
+
+            📋 See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for full details.
 
       - name: Cleanup keychain
         if: always()
