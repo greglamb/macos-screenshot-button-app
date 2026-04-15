@@ -33,3 +33,4 @@ All notable user-facing changes to ScreenshotButton are documented here.
   brew install --cask screenshotbutton
   ```
   The Xcode target, bundle identifier (`dev.greglamb.ScreenshotButton`), and DMG filename are unchanged.
+- Release workflow now gracefully degrades when signing secrets are absent: publishes an unsigned DMG with Gatekeeper-bypass instructions in the release notes instead of failing. Homebrew cask is not updated for unsigned releases, so `brew install` keeps pointing at the most recent signed build.
