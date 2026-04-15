@@ -5,6 +5,20 @@ import CoreGraphics
 struct FileSink {
     static let folderName = "ScreenshotButton"
 
+    // DateFormatter (not Date.FormatStyle) is intentional here: the
+    // filename-safe `yyyy-MM-dd-HH-mm-ss` pattern with dash separators
+    // isn't cleanly expressible via FormatStyle (default separators
+    // include `/` and `:`). Cached as a static to avoid allocating per
+    // call; `en_US_POSIX` locks the digits to ASCII regardless of the
+    // user's locale.
+    private static let filenameFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd-HH-mm-ss"
+        f.timeZone = .current
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
     let writer: any FileWriting
     let opener: any PreviewOpening
     let nowProvider: () -> Date
@@ -27,10 +41,7 @@ struct FileSink {
         let folder = tempDirectoryProvider().appendingPathComponent(Self.folderName, isDirectory: true)
         try writer.createDirectory(at: folder)
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd-HH-mm-ss"
-        formatter.timeZone = .current
-        let url = folder.appendingPathComponent("ScreenshotButton-\(formatter.string(from: nowProvider())).png")
+        let url = folder.appendingPathComponent("ScreenshotButton-\(Self.filenameFormatter.string(from: nowProvider())).png")
 
         let data = try PNGEncoder.encode(image)
         try writer.write(data, to: url)
