@@ -10,7 +10,9 @@
 		1563AA66F7B54115B0F232DB /* SinkKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9D3D2D56BEE57CFC38739A0 /* SinkKind.swift */; };
 		1B7C985B6C6E1D82C755650C /* Tags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E555FA3FC9F9A99F4F31FC3 /* Tags.swift */; };
 		29756FAE89C56F7606CD48D9 /* CaptureMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB8D45A7EE5FDC96ED8C89B0 /* CaptureMode.swift */; };
+		3ECC38828F3FD1FBC8B446B2 /* CapturedWindowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DFE0185078113279B9943D8 /* CapturedWindowTests.swift */; };
 		60B7FBF83B76EAEF47E9D4D1 /* ScreenshotButtonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D46CCA27BDB846321CDA63 /* ScreenshotButtonApp.swift */; };
+		957C8C7B8486A8BC8B64FB4B /* CapturedWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA9A09E94780AA9E2B55A99 /* CapturedWindow.swift */; };
 		D976C4E1F7ED6F412FE081D3 /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 900AF40AA1DBB5799808A929 /* SmokeTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +30,8 @@
 		7E555FA3FC9F9A99F4F31FC3 /* Tags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tags.swift; sourceTree = "<group>"; };
 		900AF40AA1DBB5799808A929 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		92F0C88BBA392EC118F2AC10 /* ScreenshotButton.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScreenshotButton.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9DFE0185078113279B9943D8 /* CapturedWindowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturedWindowTests.swift; sourceTree = "<group>"; };
+		AAA9A09E94780AA9E2B55A99 /* CapturedWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturedWindow.swift; sourceTree = "<group>"; };
 		C1C5C2FFB71C997997336FFC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D9F35FB026936026D7A40CBD /* ScreenshotButtonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenshotButtonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB8D45A7EE5FDC96ED8C89B0 /* CaptureMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureMode.swift; sourceTree = "<group>"; };
@@ -48,6 +52,7 @@
 		6427C36797D719EAEDA50FFD /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				AAA9A09E94780AA9E2B55A99 /* CapturedWindow.swift */,
 				DB8D45A7EE5FDC96ED8C89B0 /* CaptureMode.swift */,
 				F9D3D2D56BEE57CFC38739A0 /* SinkKind.swift */,
 			);
@@ -63,10 +68,19 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		C9A574CB7B4D0EECD86C791D /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				9DFE0185078113279B9943D8 /* CapturedWindowTests.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
 		CD14209A5AED125C5CE5E9A2 /* ScreenshotButtonTests */ = {
 			isa = PBXGroup;
 			children = (
 				900AF40AA1DBB5799808A929 /* SmokeTests.swift */,
+				C9A574CB7B4D0EECD86C791D /* Core */,
 				EA44B790C190C55EEFFC796B /* Support */,
 			);
 			path = ScreenshotButtonTests;
@@ -168,6 +182,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				29756FAE89C56F7606CD48D9 /* CaptureMode.swift in Sources */,
+				957C8C7B8486A8BC8B64FB4B /* CapturedWindow.swift in Sources */,
 				60B7FBF83B76EAEF47E9D4D1 /* ScreenshotButtonApp.swift in Sources */,
 				1563AA66F7B54115B0F232DB /* SinkKind.swift in Sources */,
 			);
@@ -177,6 +192,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3ECC38828F3FD1FBC8B446B2 /* CapturedWindowTests.swift in Sources */,
 				D976C4E1F7ED6F412FE081D3 /* SmokeTests.swift in Sources */,
 				1B7C985B6C6E1D82C755650C /* Tags.swift in Sources */,
 			);
