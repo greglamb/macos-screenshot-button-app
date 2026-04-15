@@ -21,6 +21,7 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 - Release workflow now bumps the cask **before** publishing the GitHub release, with `git fetch && checkout main && pull --ff-only` to prevent racing concurrent pushes; users never see a release whose cask points at the prior version.
 - Launch-time temp pruning runs in a structured `.task(priority: .background)` rather than an unstructured `Task.detached(...).value` nested inside `.task`.
+- `NSScreen.displayID` helper falls back to `CGMainDisplayID()` instead of `0` (which is not a valid display ID) when `NSScreenNumber` is missing, and logs the fallback via `os.Logger` so real regressions are visible in Console.
 
 ### Changed
 
