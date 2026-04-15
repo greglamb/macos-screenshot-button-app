@@ -2,18 +2,29 @@
 # bin/setup — bootstrap macOS app dev environment.
 set -euo pipefail
 
-if ! command -v xcodegen >/dev/null 2>&1; then
-  echo "==> Installing XcodeGen"
-  if command -v brew >/dev/null 2>&1; then
-    brew install xcodegen
-  else
-    echo "Homebrew is not installed. Install Homebrew first: https://brew.sh"
-    exit 1
+have_brew() { command -v brew >/dev/null 2>&1; }
+
+ensure_tool() {
+  local cmd="$1" pkg="$2"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "==> Installing $pkg"
+    if have_brew; then
+      brew install "$pkg"
+    else
+      echo "Homebrew is not installed. Install Homebrew first: https://brew.sh"
+      exit 1
+    fi
   fi
-fi
+}
+
+ensure_tool xcodegen          xcodegen
+ensure_tool xcode-build-server xcode-build-server
 
 echo "==> Generating Xcode project from Project.yml"
 xcodegen generate
+
+echo "==> Generating buildServer.json so SourceKit understands the Xcode target"
+xcode-build-server config -scheme ScreenshotButton -project ScreenshotButton.xcodeproj
 
 echo "==> Done."
 echo "Build:  xcodebuild build -project ScreenshotButton.xcodeproj -scheme ScreenshotButton CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO -quiet"
