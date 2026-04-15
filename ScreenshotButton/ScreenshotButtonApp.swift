@@ -22,13 +22,14 @@ struct ScreenshotButtonApp: App {
             Image(systemName: "viewfinder")
                 .accessibilityLabel("ScreenshotButton")
                 .task(priority: .background) {
-                    // Idempotent cleanup of stale temp PNGs. Uses synchronous
-                    // FileManager calls — `.task(priority:)` already gives us a
-                    // background-priority async context; no nested unstructured
-                    // Task needed.
+                    // Fire auth and temp cleanup concurrently: a stalled permission prompt
+                    // must not delay pruning. `async let` gives us a structured child task
+                    // scoped to this `.task` modifier, so SwiftUI cancellation propagates.
+                    async let auth: Void = notifier.requestAuthorization()
                     let dir = URL(fileURLWithPath: NSTemporaryDirectory())
                         .appendingPathComponent(FileSink.folderName, isDirectory: true)
                     TempCleanup.prune(directory: dir, olderThan: 60 * 60 * 24)
+                    _ = await auth
                 }
         }
     }

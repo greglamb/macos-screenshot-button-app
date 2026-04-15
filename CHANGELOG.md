@@ -23,6 +23,7 @@ All notable user-facing changes to ScreenshotButton are documented here.
 - Launch-time temp pruning runs in a structured `.task(priority: .background)` rather than an unstructured `Task.detached(...).value` nested inside `.task`.
 - `NSScreen.displayID` helper falls back to `CGMainDisplayID()` instead of `0` (which is not a valid display ID) when `NSScreenNumber` is missing, and logs the fallback via `os.Logger` so real regressions are visible in Console.
 - Launch-at-Login toggle failures now surface via a notification banner instead of silently reverting, so the user knows why the toggle snapped back.
+- `Notifier.requestAuthorization` now fires eagerly at app launch (in parallel with temp-file pruning via `async let`), so the first permission-denied banner can't race the auth prompt.
 
 ### Changed
 
