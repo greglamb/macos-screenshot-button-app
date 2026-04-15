@@ -46,6 +46,7 @@
 		C27A0BDFA2A20D54AF481997 /* PreviewOpening.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EADA8D8E7DDABF097BDFE1B /* PreviewOpening.swift */; };
 		C3C1345C43C7043FF676E41C /* TempCleanupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD47F328DBCC45EBB36A5D8A /* TempCleanupTests.swift */; };
 		CC2373743A35BA4ABCDA3F5D /* FakeNotifying.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE4351E24A4B4DD84CFE00E4 /* FakeNotifying.swift */; };
+		CC3C90DC24DD9E50401F308A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79038405588982D3109354DE /* Assets.xcassets */; };
 		D35A01F03C04A54FCEAFA49B /* PasteboardWriting.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7E3BD871ACC45D861B1AA7E /* PasteboardWriting.swift */; };
 		D374FD2B99ACDC1CE43C3159 /* PNGEncoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7BC8B6AB656C530CF868F1C /* PNGEncoderTests.swift */; };
 		D6FC5A0F99360A387FC1C30D /* FileSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83D5C7D7713FE2DDA99D5BEA /* FileSink.swift */; };
@@ -93,6 +94,7 @@
 		65CDC0A2CB0EF5BA358A922C /* SCScreenshotManagerAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCScreenshotManagerAdapter.swift; sourceTree = "<group>"; };
 		67AE72349F8196578412D2D2 /* ClipboardSinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSinkTests.swift; sourceTree = "<group>"; };
 		7734D1EF7033618EB4C85B9C /* OverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayManager.swift; sourceTree = "<group>"; };
+		79038405588982D3109354DE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7A98062004FE602BBB1ED439 /* AreaGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AreaGeometryTests.swift; sourceTree = "<group>"; };
 		7CB36BF08797B6405442BE99 /* FakePasteboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakePasteboard.swift; sourceTree = "<group>"; };
 		7E555FA3FC9F9A99F4F31FC3 /* Tags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tags.swift; sourceTree = "<group>"; };
@@ -277,6 +279,7 @@
 		D34619199DE4101E5E3A5F44 /* ScreenshotButton */ = {
 			isa = PBXGroup;
 			children = (
+				79038405588982D3109354DE /* Assets.xcassets */,
 				C1C5C2FFB71C997997336FFC /* Info.plist */,
 				F6D46CCA27BDB846321CDA63 /* ScreenshotButtonApp.swift */,
 				6427C36797D719EAEDA50FFD /* Core */,
@@ -303,6 +306,7 @@
 			buildConfigurationList = 4257E7BE57D95968076F03E0 /* Build configuration list for PBXNativeTarget "ScreenshotButton" */;
 			buildPhases = (
 				04166A7C40ACD85DEF6FB430 /* Sources */,
+				9D15DFEFF803FD3F4766205C /* Resources */,
 			);
 			buildRules = (
 			);
@@ -366,6 +370,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9D15DFEFF803FD3F4766205C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CC3C90DC24DD9E50401F308A /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		04166A7C40ACD85DEF6FB430 /* Sources */ = {

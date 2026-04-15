@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Regenerates ScreenshotButton's AppIcon.appiconset from a single 1024x1024 PNG
+# drawn programmatically. No external design tool required.
+#
+# Usage: ./bin/gen-icon
+# Output: ScreenshotButton/Assets.xcassets/AppIcon.appiconset/*.png
+
+set -euo pipefail
+
+OUT_DIR="ScreenshotButton/Assets.xcassets/AppIcon.appiconset"
+MASTER="$OUT_DIR/icon_1024.png"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+cd "$REPO_ROOT"
+mkdir -p "$OUT_DIR"
+
+# 1. Render the 1024x1024 master via a tiny Swift program.
+swift "$SCRIPT_DIR/draw-icon.swift" "$MASTER"
+
+# 2. Downscale with sips to every size macOS expects.
+gen() {
+  local size="$1" name="$2"
+  sips -z "$size" "$size" "$MASTER" --out "$OUT_DIR/$name" >/dev/null
+}
+
+gen 16   icon_16x16.png
+gen 32   icon_16x16@2x.png
+gen 32   icon_32x32.png
+gen 64   icon_32x32@2x.png
+gen 128  icon_128x128.png
+gen 256  icon_128x128@2x.png
+gen 256  icon_256x256.png
+gen 512  icon_256x256@2x.png
+gen 512  icon_512x512.png
+cp "$MASTER" "$OUT_DIR/icon_512x512@2x.png"
+rm -f "$MASTER"
+
+echo "==> AppIcon.appiconset regenerated ($(ls "$OUT_DIR"/*.png | wc -l | tr -d ' ') PNGs)"

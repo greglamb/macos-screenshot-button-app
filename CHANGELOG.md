@@ -6,6 +6,7 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 ### Added
 
+- App icon — a blue-gradient rounded square with a white viewfinder motif. Generated programmatically via `bin/gen-icon` so it can be regenerated reproducibly without a design tool.
 - Menu bar app with four capture modes: **Window to File**, **Area to File**, **Window to Clipboard**, **Area to Clipboard**.
 - Per-screen click-to-select-window overlay; drag-to-draw rectangle for area mode.
 - **Space** key toggles between window and area mode mid-capture; **Esc** cancels.
