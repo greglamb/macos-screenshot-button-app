@@ -12,7 +12,7 @@ A macOS 14+ menu-bar utility that captures windows or drawn rectangles to either
 
 ### Menu
 
-A `MenuBarExtra` with a camera icon and six items, matching the reference screenshot the user supplied:
+A `MenuBarExtra` with a `viewfinder` SF Symbol icon and six items, matching the reference screenshot the user supplied (the reference shows a camera glyph for layout purposes; the shipped icon is `viewfinder` for clearer screenshot semantics):
 
 1. Window to File
 2. Area to File
@@ -161,15 +161,14 @@ Both produce a `CGImage` preserving Retina pixel density.
 ### TCC — Screen Recording
 
 - **No pre-prompt.** The dialog fires naturally on the first `SCShareableContent.current` call.
-- **Onboarding window** on first-launch denial: a small SwiftUI window with **Open Settings** (deep-links to `x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture`) and **Quit** buttons.
-- **Subsequent denials** (user revoked permission later): transient `UNUserNotificationCenter` banner with an action that opens the same pane.
+- **All denials** (first-launch and subsequent revocation): `UNUserNotificationCenter` banner with an "Open Settings" action that deep-links to `x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture`. No in-app onboarding window — the OS already shows its own first-time prompt, and a banner is less disruptive than an unsolicited modal window for repeat denials.
 - Permission grants trigger a macOS-level app restart. The app stays stateless at launch apart from `UserDefaults` (autolaunch flag) so the restart is invisible.
 
 ### Error taxonomy
 
 | Class | Examples | UI |
 |-------|----------|----|
-| Permission | TCC denied, TCC revoked | Onboarding window first time; notification with action on subsequent failures |
+| Permission | TCC denied, TCC revoked | Notification banner with "Open Settings" action — same UI for first-time and subsequent denials |
 | Transient | Window disappeared between hover and click; empty/zero-byte capture; temp write failed | Silent notification: "Capture failed — please try again"; session returns to Idle |
 | Programmer | Preview.app missing; `SMAppService.register` throws | `os_log` at `.error`; notification only if user-visible |
 
@@ -262,7 +261,7 @@ Per `superpowers:test-driven-development` and `project-standards`: each planned 
 The following will surface naturally during the plan/implementation phase and don't need resolving up front:
 
 - Exact visual style of the window highlight (stroke color, fill opacity). Default: accent color 2pt stroke, accent color 10% fill. Adjust by eye during UI verification.
-- Whether the onboarding window also appears when the Screen Recording permission is granted but the user never clicked any menu item yet. Default: no — keep launch silent.
+- Whether to also surface a notification on first launch before the user has clicked any menu item. Default: no — keep launch silent. The OS shows its own prompt the first time the user actually triggers a capture.
 - Whether the menu shows a "permission not granted" indicator before the first capture attempt. Default: no — let the first attempt trigger the prompt naturally.
 
 These are explicitly deferred to implementation judgment. If any become real design decisions, they move into this file via PR.
