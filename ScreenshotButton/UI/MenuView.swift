@@ -33,5 +33,17 @@ struct MenuView: View {
         Divider()
         Button("Quit ScreenshotButton") { NSApp.terminate(nil) }
             .keyboardShortcut("q", modifiers: .command)
+        Divider()
+        Text("Version \(Self.versionString)")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+    }
+
+    /// `CFBundleShortVersionString` from the app bundle. Released builds show
+    /// "1.2.3" (from the git tag → `MARKETING_VERSION`); local dev builds show
+    /// "dev-abc1234" (stamped by the Project.yml postBuildScript). Falls back
+    /// to "?" if neither path fires.
+    private static var versionString: String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "?"
     }
 }

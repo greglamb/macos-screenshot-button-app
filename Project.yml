@@ -11,7 +11,12 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: "0.0.0"
+    # `0.0.0-dev` is the placeholder for local/dev builds. The postBuildScript
+    # below swaps it for `dev-<shortsha>` so developers and testers can see
+    # exactly which commit they're running. The release workflow overrides
+    # MARKETING_VERSION on the xcodebuild command line with the stripped git
+    # tag (e.g., `v1.2.3` → `1.2.3`), in which case the script is a no-op.
+    MARKETING_VERSION: "0.0.0-dev"
     CURRENT_PROJECT_VERSION: "1"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
 
@@ -21,9 +26,22 @@ targets:
     platform: macOS
     sources:
       - path: ScreenshotButton
+    postBuildScripts:
+      - name: Inject Dev Version
+        shell: /bin/bash
+        inputFiles:
+          - $(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)
+        script: |
+          PLIST="${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}"
+          CURRENT=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$PLIST" 2>/dev/null || echo "")
+          if [[ "$CURRENT" == "0.0.0-dev" ]]; then
+              HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+              /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString dev-${HASH}" "$PLIST"
+          fi
     info:
       path: ScreenshotButton/Info.plist
       properties:
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
         LSUIElement: true
         LSMinimumSystemVersion: "14.0"
         NSScreenCaptureUsageDescription: "ScreenshotButton needs screen recording access to capture windows and regions."

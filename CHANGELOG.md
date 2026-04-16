@@ -6,6 +6,8 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 ### Added
 
+- Menu footer now shows the running app version (e.g. "Version 0.0.6"). Released builds display the git-tag version (via `MARKETING_VERSION` on the release workflow's `xcodebuild` command); local dev builds show `dev-<short-sha>` (stamped by a Project.yml postBuildScript). No manual version bumps anywhere — tag → push → published version visible in the menu.
+
 ### Changed
 
 ### Fixed
