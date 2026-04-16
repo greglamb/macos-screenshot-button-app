@@ -6,6 +6,16 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [v0.0.5] - 2026-04-16
+
+### Added
+
 - App icon — a blue-gradient rounded square with a white viewfinder motif. Generated programmatically via `bin/gen-icon` so it can be regenerated reproducibly without a design tool.
 - Menu bar app with four capture modes: **Window to File**, **Area to File**, **Window to Clipboard**, **Area to Clipboard**.
 - Per-screen click-to-select-window overlay; drag-to-draw rectangle for area mode.
@@ -18,7 +28,7 @@ All notable user-facing changes to ScreenshotButton are documented here.
 - Signed and notarized distribution via Homebrew cask hosted in this repo.
 - Mid-capture Screen Recording revocation surfaces the same notification banner with an "Open Settings" action as a denied first capture.
 
-### Fixed (pre-release review)
+### Fixed
 
 - Release workflow now bumps the cask **before** publishing the GitHub release, with `git fetch && checkout main && pull --ff-only` to prevent racing concurrent pushes; users never see a release whose cask points at the prior version.
 - Launch-time temp pruning runs in a structured `.task(priority: .background)` rather than an unstructured `Task.detached(...).value` nested inside `.task`.
@@ -28,6 +38,7 @@ All notable user-facing changes to ScreenshotButton are documented here.
 - Cursor now changes during capture: **crosshair** in area mode, **pointing hand** in window mode. Set directly via `NSCursor.set()` from `cursorUpdate` and `mouseMoved` because cursor-rects don't reliably propagate through borderless `nonactivatingPanel`s at `.screenSaver` level. Toggles live with **Space**.
 - Window picker now excludes minimized and hidden windows — only windows visible on screen are selectable.
 - Window highlight and area capture now correctly handle the Quartz↔Cocoa Y-axis flip. ScreenCaptureKit returns frames in top-left-origin Quartz space; the rest of the app uses bottom-left-origin Cocoa space. The mismatch was making the picker highlight whichever windows happened to overlap the inverted Y, and area captures were grabbing the wrong region of the screen. `OverlayManager` now flips at the SCK boundary so hit-testing, highlight drawing, and `SCStreamConfiguration.sourceRect` all share one coordinate space.
+- CI cask-bump step now uses POSIX `[[:space:]]` in the `sed -E` regex (BSD `sed` on macOS doesn't understand the `\s` extension), and computes the DMG SHA *after* `codesign --force` runs, so brew installs match the file actually published in the release.
 
 ### Changed
 
