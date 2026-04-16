@@ -137,6 +137,7 @@ Automatically runs `episodic-memory sync` before the vibeplan command executes.
 - **TODO.md**: ALL deferred work, known limitations, and planned features MUST be tracked in TODO.md (root)
 - Update both files as part of every PR/commit that changes behavior (enforced by `changelog-todo-reminder` hook)
 - **Deferred work rule**: Any task identified during implementation that is explicitly out of scope or deferred MUST be added to TODO.md before the work is considered complete. This includes: scope reductions, "fix later" decisions, discovered tech debt, and follow-up improvements. Never defer work silently.
+- **CHANGELOG release promotion (Keep a Changelog)**: Before pushing any `v*` tag, promote everything currently under `## [Unreleased]` to a new dated section `## [vX.Y.Z] - YYYY-MM-DD` matching the tag, and leave `## [Unreleased]` empty (with empty `### Added/Changed/Fixed/Removed` subsections as needed). Commit that change in the same commit the tag points at — do NOT push the tag first and the changelog update later. If a release is later deleted/retagged, also undo the promotion so we don't end up with a section for a tag that no longer exists.
 <!-- goodvibes-workflow:end -->
 
 <!-- swift-dev:managed:suggest-skills -->

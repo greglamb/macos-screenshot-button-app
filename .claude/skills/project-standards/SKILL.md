@@ -86,7 +86,7 @@ These are the principles the user explicitly called out. Apply them as *defaults
 
 ## Documentation cadence
 
-- `CHANGELOG.md` — every user-facing change. Tooling-only changes are exempt, but state that explicitly in the commit.
+- `CHANGELOG.md` — every user-facing change. Tooling-only changes are exempt, but state that explicitly in the commit. **Before tagging a release**, promote everything under `## [Unreleased]` into a dated `## [vX.Y.Z] - YYYY-MM-DD` section matching the tag, leaving `## [Unreleased]` empty. The promotion must be in the commit the tag points at — never push the tag without the promotion. If you delete and retag, undo the promotion too.
 - `TODO.md` — any deferred work, scope cut, or discovered tech debt. Never silently defer.
 - `docs/ARCHITECTURE.md` — updated when module layout, data flow, or major dependencies change.
 - `docs/plans/YYYY-MM-DD-<topic>.md` — design docs and plans, per the goodvibes workflow.
