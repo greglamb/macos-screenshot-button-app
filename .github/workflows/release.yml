@@ -147,14 +147,21 @@ jobs:
             -ov -format UDZO \
             "$DMG_NAME"
 
-          DMG_SHA=$(shasum -a 256 "$DMG_NAME" | awk '{print $1}')
           echo "dmg_name=$DMG_NAME" >> "$GITHUB_OUTPUT"
-          echo "dmg_sha=$DMG_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Sign DMG
         if: steps.signing.outputs.available == 'true'
         run: |
           codesign --force --sign "Developer ID Application" --timestamp "${{ steps.dmg.outputs.dmg_name }}"
+
+      # SHA must be computed AFTER signing — `codesign --force` rewrites the
+      # DMG bytes, so a SHA captured pre-sign won't match the file brew
+      # downloads from the GitHub release.
+      - name: Compute final DMG SHA
+        id: sha
+        run: |
+          DMG_SHA=$(shasum -a 256 "${{ steps.dmg.outputs.dmg_name }}" | awk '{print $1}')
+          echo "dmg_sha=$DMG_SHA" >> "$GITHUB_OUTPUT"
 
       # Bump the cask BEFORE creating the GitHub release. If the bump fails (e.g. a
       # concurrent push to main), we abort and never publish a release that points
@@ -166,7 +173,7 @@ jobs:
         if: steps.signing.outputs.available == 'true'
         env:
           VERSION: ${{ steps.version.outputs.version }}
-          DMG_SHA: ${{ steps.dmg.outputs.dmg_sha }}
+          DMG_SHA: ${{ steps.sha.outputs.dmg_sha }}
           CASK_PATH: Casks/screenshotbutton.rb
         run: |
           # Save the DMG so it survives the branch switch (it's outside the work tree).
