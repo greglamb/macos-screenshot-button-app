@@ -177,15 +177,23 @@ jobs:
           git checkout main
           git pull --ff-only origin main
 
-          sed -i.bak -E "s/^(\s*version) \"[^\"]*\"/\1 \"${VERSION}\"/" "$CASK_PATH"
-          sed -i.bak -E "s/^(\s*sha256) \"[^\"]*\"/\1 \"${DMG_SHA}\"/" "$CASK_PATH"
+          # `sed -E` on macOS is BSD, which does NOT understand `\s` — use POSIX
+          # `[[:space:]]` instead, otherwise no substitution happens and the
+          # commit step below fails with "nothing to commit."
+          sed -i.bak -E "s/^([[:space:]]*version) \"[^\"]*\"/\1 \"${VERSION}\"/" "$CASK_PATH"
+          sed -i.bak -E "s/^([[:space:]]*sha256) \"[^\"]*\"/\1 \"${DMG_SHA}\"/" "$CASK_PATH"
           rm -f "${CASK_PATH}.bak"
 
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name  "github-actions[bot]"
           git add "$CASK_PATH"
-          git commit -m "chore(cask): bump screenshotbutton to v${VERSION}"
-          git push origin main
+          # Re-tagging the same version (or a no-op bump) shouldn't fail the run.
+          if git diff --cached --quiet "$CASK_PATH"; then
+            echo "Cask already at v${VERSION} (sha ${DMG_SHA}); skipping commit."
+          else
+            git commit -m "chore(cask): bump screenshotbutton to v${VERSION}"
+            git push origin main
+          fi
 
           # Restore the DMG file path the next step expects.
           cp "$DMG_TMP" "${{ steps.dmg.outputs.dmg_name }}"
