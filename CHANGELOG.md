@@ -10,10 +10,14 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 ### Fixed
 
+### Removed
+
+## [v0.0.6] - 2026-04-16
+
+### Fixed
+
 - Cursor change during capture now actually takes effect: switched from `addCursorRect`/`NSCursor.set()` (which the window server clobbers on borderless `nonactivatingPanel`s at `.screenSaver` level) to `NSCursor.push()`/`pop()` keyed to the overlay-present/dismiss/Space-toggle lifecycle. Crosshair in area mode, pointing hand in window mode.
 - Window picker now only highlights normal-level app windows visible on screen. Excludes the desktop wallpaper, dock, menu bar, notification center, floating panels, and sub-pixel helper windows. When overlapping windows share a click point, the smaller (more specific) window wins — matches macOS's built-in `Cmd-Shift-4-Space` behavior.
-
-### Removed
 
 ## [v0.0.5] - 2026-04-16
 
