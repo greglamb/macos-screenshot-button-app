@@ -42,7 +42,19 @@ final class OverlayManager {
             controller.cancel()
             return
         }
-        windows = fetched
+        // SCK returns frames in Quartz coords (top-left origin). The rest of
+        // the app uses Cocoa (bottom-left origin from the primary display).
+        // Flip Y once here so hit-testing, highlight drawing, and area rects
+        // all live in the same space.
+        let primaryHeight = primaryDisplayHeight()
+        windows = fetched.map { w in
+            CapturedWindow(
+                id: w.id,
+                frame: ScreenCoordinates.flipY(rect: w.frame, referenceHeight: primaryHeight),
+                title: w.title,
+                ownerName: w.ownerName
+            )
+        }
         panels = NSScreen.screens.map(OverlayPanel.init(screen:))
         views = panels.enumerated().map { (idx, panel) in
             let v = OverlayView(screen: NSScreen.screens[idx], manager: self)
@@ -90,16 +102,23 @@ final class OverlayManager {
             return
         }
         let displayID = view.screen.displayID
-        let localRect = CGRect(
+        // Local Cocoa rect (bottom-left origin within the screen).
+        let localCocoa = CGRect(
             x: rect.origin.x - view.screen.frame.origin.x,
             y: rect.origin.y - view.screen.frame.origin.y,
             width: rect.width, height: rect.height
+        )
+        // SCStreamConfiguration.sourceRect expects display-local Quartz coords
+        // (top-left origin). Flip Y around *this display's* height.
+        let localQuartz = ScreenCoordinates.flipY(
+            rect: localCocoa,
+            referenceHeight: view.screen.frame.height
         )
         tearDown()
         deliveryTask = Task { [weak self] in
             guard let self else { return }
             do {
-                try await self.controller.commitArea(localRect, displayID: displayID)
+                try await self.controller.commitArea(localQuartz, displayID: displayID)
             } catch is CancellationError {
                 self.controller.cancel()
             } catch let error as SCStreamError where error.code == .userDeclined {
@@ -148,4 +167,17 @@ private extension NSScreen {
         overlayLog.error("NSScreen missing NSScreenNumber; falling back to CGMainDisplayID()")
         return CGMainDisplayID()
     }
+}
+
+/// Height of the primary display (the one whose Cocoa origin is `(0, 0)`).
+/// Used to flip global Quartz <-> Cocoa Y. Falls back to the main display's
+/// pixel height if no primary is found, which on a single-display setup is
+/// the same value.
+@MainActor
+private func primaryDisplayHeight() -> CGFloat {
+    if let primary = NSScreen.screens.first(where: { $0.frame.origin == .zero }) {
+        return primary.frame.height
+    }
+    overlayLog.error("No primary NSScreen at origin (0,0); falling back to main display height")
+    return NSScreen.main?.frame.height ?? 0
 }

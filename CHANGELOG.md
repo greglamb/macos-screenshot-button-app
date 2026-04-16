@@ -25,8 +25,9 @@ All notable user-facing changes to ScreenshotButton are documented here.
 - `NSScreen.displayID` helper falls back to `CGMainDisplayID()` instead of `0` (which is not a valid display ID) when `NSScreenNumber` is missing, and logs the fallback via `os.Logger` so real regressions are visible in Console.
 - Launch-at-Login toggle failures now surface via a notification banner instead of silently reverting, so the user knows why the toggle snapped back.
 - `Notifier.requestAuthorization` now fires eagerly at app launch (in parallel with temp-file pruning via `async let`), so the first permission-denied banner can't race the auth prompt.
-- Cursor now changes to a crosshair in area-capture mode (and to the default arrow in window-capture mode), so mid-capture mode is visually unambiguous. Toggles live with **Space**.
+- Cursor now changes during capture: **crosshair** in area mode, **pointing hand** in window mode. Set directly via `NSCursor.set()` from `cursorUpdate` and `mouseMoved` because cursor-rects don't reliably propagate through borderless `nonactivatingPanel`s at `.screenSaver` level. Toggles live with **Space**.
 - Window picker now excludes minimized and hidden windows — only windows visible on screen are selectable.
+- Window highlight and area capture now correctly handle the Quartz↔Cocoa Y-axis flip. ScreenCaptureKit returns frames in top-left-origin Quartz space; the rest of the app uses bottom-left-origin Cocoa space. The mismatch was making the picker highlight whichever windows happened to overlap the inverted Y, and area captures were grabbing the wrong region of the screen. `OverlayManager` now flips at the SCK boundary so hit-testing, highlight drawing, and `SCStreamConfiguration.sourceRect` all share one coordinate space.
 
 ### Changed
 
