@@ -26,41 +26,20 @@ final class OverlayView: NSView {
         trackingAreas.forEach { removeTrackingArea($0) }
         let ta = NSTrackingArea(
             rect: bounds,
-            options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect, .cursorUpdate],
+            options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
             owner: self, userInfo: nil
         )
         addTrackingArea(ta)
     }
 
-    /// AppKit calls this when the mouse enters the tracking area (we set
-    /// `.cursorUpdate` in `updateTrackingAreas`). Setting via `.set()` rather
-    /// than `addCursorRect` works reliably on borderless `nonactivatingPanel`s
-    /// at `.screenSaver` level, where the cursor-rect machinery is unreliable.
-    override func cursorUpdate(with event: NSEvent) {
-        currentCursor.set()
-    }
-
-    /// Called by `OverlayManager` after Space toggles the capture mode.
-    /// Sets the cursor immediately so the user doesn't have to wiggle the mouse.
-    func refreshCursor() {
-        currentCursor.set()
-    }
-
-    private var currentCursor: NSCursor {
-        switch manager?.mode {
-        case .area:   return .crosshair
-        case .window: return .pointingHand
-        case .none:   return .arrow
-        }
-    }
+    // Cursor lifecycle is owned by `OverlayManager` via `NSCursor.push/pop`,
+    // not by this view. `addCursorRect`/`set()` don't reliably propagate
+    // through borderless `nonactivatingPanel`s at `.screenSaver` level —
+    // push/pop goes onto a global cursor stack the window server respects.
 
     override func mouseMoved(with event: NSEvent) {
         let screenPoint = screenPoint(for: event)
         manager?.didMove(to: screenPoint, on: self)
-        // Belt-and-suspenders: borderless `nonactivatingPanel`s at high window
-        // levels don't always trigger `cursorUpdate`. Setting on every mouseMoved
-        // is cheap and guarantees the cursor reflects the current mode.
-        currentCursor.set()
     }
 
     override func mouseDown(with event: NSEvent) {
