@@ -25,11 +25,14 @@ This installs XcodeGen and `xcode-build-server` via Homebrew if missing, regener
 
 ```
 ScreenshotButton/
-├── Core/              value types: CaptureMode, SinkKind, CapturedWindow, AreaGeometry, HitTesting
-├── Services/          protocol-wrapped Apple APIs: WindowEnumerator, Capturer, FileSink,
-│                      ClipboardSink, LaunchAtLogin, TempCleanup, Notifier, PNGEncoder
+├── Core/              value types: CaptureMode, SinkKind, CapturedWindow, AreaGeometry,
+│                      HitTesting, ScreenCoordinates
+├── Services/          protocol-wrapped Apple APIs (paired files: FooProtocol.swift +
+│                      SystemFoo.swift): WindowEnumerator, Capturer, FileSink, ClipboardSink,
+│                      LaunchAtLogin, TempCleanup, Notifier, PNGEncoder
 ├── Session/           CaptureSession (state machine), CaptureController (coordinator)
-├── UI/                ScreenshotButtonApp, MenuView, OverlayPanel, OverlayView, OverlayManager
+├── Views/             SwiftUI views + AppKit view subclasses: MenuView, OverlayView, OverlayPanel
+├── ViewModels/        @Observable coordinators + handlers: OverlayManager, AutolaunchToggleHandler
 ├── Info.plist         generated from Project.yml
 └── ScreenshotButtonApp.swift   @main entry point
 
@@ -37,8 +40,10 @@ ScreenshotButtonTests/
 ├── Core/              pure-logic tests (Swift Testing)
 ├── Services/          service tests with injected fakes
 ├── Session/           state-machine and coordinator tests
+├── UI/                AutolaunchHandlerTests (ViewModel tests mirror ViewModels/)
 ├── Fakes/             FakeSCShareableContent, FakeScreenshotManager (actor),
-│                      FakeFileWriter, FakePreviewOpener, FakePasteboard, FakeSMAppServiceAPI
+│                      FakeFileWriter, FakePreviewOpener, FakePasteboard, FakeSMAppServiceAPI,
+│                      FakeURLOpener, FakeNotifying
 └── Support/           Tags.swift (Swift Testing custom tags: .slow, .fileSystem, .ui)
 ```
 
