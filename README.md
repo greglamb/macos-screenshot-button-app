@@ -4,10 +4,26 @@ A macOS menu bar app for capturing windows or drawn regions to a PNG file (opene
 
 ## Install
 
+### Homebrew
+
 ```
 brew tap greglamb/macos-screenshot-button-app https://github.com/greglamb/macos-screenshot-button-app
 brew install --cask screenshotbutton
 ```
+
+If the repository is private, set a GitHub personal access token first:
+
+```
+export HOMEBREW_GITHUB_API_TOKEN=your_token_here
+brew tap greglamb/macos-screenshot-button-app https://github.com/greglamb/macos-screenshot-button-app
+brew install --cask screenshotbutton
+```
+
+The token needs at least `repo` scope. Generate one at GitHub → Settings → Developer settings → Personal access tokens.
+
+### Direct Download
+
+Download the latest `.dmg` from [Releases](https://github.com/greglamb/macos-screenshot-button-app/releases).
 
 ## Use
 
