@@ -21,6 +21,12 @@ jobs:
       - name: Generate Xcode project from Project.yml
         run: xcodegen generate
 
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Lint (swift-format + SwiftLint)
+        run: ./bin/lint
+
       - name: Build
         run: |
           xcodebuild \

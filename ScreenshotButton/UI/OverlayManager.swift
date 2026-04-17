@@ -150,8 +150,10 @@ final class OverlayManager {
     /// cancels in-flight tasks, and resets the session.
     func dismiss() {
         tearDown()
-        presentTask?.cancel(); presentTask = nil
-        deliveryTask?.cancel(); deliveryTask = nil
+        presentTask?.cancel()
+        presentTask = nil
+        deliveryTask?.cancel()
+        deliveryTask = nil
         controller.cancel()
     }
 
@@ -180,8 +182,8 @@ final class OverlayManager {
     }
 }
 
-private extension NSScreen {
-    var displayID: CGDirectDisplayID {
+extension NSScreen {
+    fileprivate var displayID: CGDirectDisplayID {
         if let number = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber {
             return number.uint32Value
         }

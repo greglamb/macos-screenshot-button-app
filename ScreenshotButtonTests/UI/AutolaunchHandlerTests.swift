@@ -1,5 +1,6 @@
-import Testing
 import Foundation
+import Testing
+
 @testable import ScreenshotButton
 
 private struct LaunchError: Error, Equatable {}
@@ -36,13 +37,15 @@ struct AutolaunchHandlerTests {
 
         let result = handler.setEnabled(true)
 
-        #expect(result == false) // reverted to current persisted state
-        #expect(notifier.posts == [
-            RecordedPost(
-                title: "Couldn't update Launch at Login",
-                body: "Try again in a moment. If the problem persists, open System Settings → General → Login Items."
-            )
-        ])
+        #expect(result == false)  // reverted to current persisted state
+        #expect(
+            notifier.posts == [
+                RecordedPost(
+                    title: "Couldn't update Launch at Login",
+                    body:
+                        "Try again in a moment. If the problem persists, open System Settings → General → Login Items."
+                )
+            ])
     }
 
     @Test("Disabling on success returns false and posts nothing")

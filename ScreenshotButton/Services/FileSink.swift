@@ -1,5 +1,5 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 @MainActor
 struct FileSink {
@@ -41,7 +41,8 @@ struct FileSink {
         let folder = tempDirectoryProvider().appendingPathComponent(Self.folderName, isDirectory: true)
         try writer.createDirectory(at: folder)
 
-        let url = folder.appendingPathComponent("ScreenshotButton-\(Self.filenameFormatter.string(from: nowProvider())).png")
+        let url = folder.appendingPathComponent(
+            "ScreenshotButton-\(Self.filenameFormatter.string(from: nowProvider())).png")
 
         let data = try PNGEncoder.encode(image)
         try writer.write(data, to: url)

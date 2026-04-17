@@ -1,6 +1,7 @@
-import Testing
 import CoreGraphics
 import Foundation
+import Testing
+
 @testable import ScreenshotButton
 
 @MainActor
@@ -15,8 +16,9 @@ struct CaptureControllerTests {
         #expect(c.session.sink == .toFile)
     }
 
-    @Test("commitWindow with file sink writes a file and returns to idle",
-          .timeLimit(.minutes(1)))
+    @Test(
+        "commitWindow with file sink writes a file and returns to idle",
+        .timeLimit(.minutes(1)))
     func commitWindowWithFileSinkWritesAndReturnsToIdle() async throws {
         let writer = FakeFileWriter()
         let opener = FakePreviewOpener()
@@ -31,8 +33,9 @@ struct CaptureControllerTests {
         #expect(c.session.state == .idle)
     }
 
-    @Test("commitArea with clipboard sink writes to the pasteboard and returns to idle",
-          .timeLimit(.minutes(1)))
+    @Test(
+        "commitArea with clipboard sink writes to the pasteboard and returns to idle",
+        .timeLimit(.minutes(1)))
     func commitAreaWithClipboardSinkCopiesAndReturnsToIdle() async throws {
         let pb = FakePasteboard()
         let c = makeController(pasteboard: pb)

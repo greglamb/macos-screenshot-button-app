@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct MenuView: View {
     let launchAtLogin: LaunchAtLogin
@@ -19,11 +19,11 @@ struct MenuView: View {
     }
 
     var body: some View {
-        Button("Window to File")      { onCaptureRequested(.window, .toFile) }
-        Button("Area to File")        { onCaptureRequested(.area,   .toFile) }
+        Button("Window to File") { onCaptureRequested(.window, .toFile) }
+        Button("Area to File") { onCaptureRequested(.area, .toFile) }
         Divider()
         Button("Window to Clipboard") { onCaptureRequested(.window, .toClipboard) }
-        Button("Area to Clipboard")   { onCaptureRequested(.area,   .toClipboard) }
+        Button("Area to Clipboard") { onCaptureRequested(.area, .toClipboard) }
         Divider()
         Toggle("Launch at Login", isOn: $launchAtLoginEnabled)
             .onChange(of: launchAtLoginEnabled) { _, newValue in

@@ -1,4 +1,5 @@
 import Testing
+
 @testable import ScreenshotButton
 
 @MainActor
@@ -42,7 +43,7 @@ struct CaptureSessionTests {
     @Test("toggle() is ignored while idle")
     func toggleIgnoredWhenIdle() {
         s.toggle()
-        #expect(s.mode == .window) // default
+        #expect(s.mode == .window)  // default
         #expect(s.state == .idle)
     }
 
@@ -52,7 +53,7 @@ struct CaptureSessionTests {
         s.start(mode: .window, sink: .toFile)
         s.hover(win)
         #expect(s.hoveredWindow == win)
-        s.toggle() // -> area
+        s.toggle()  // -> area
         s.hover(win)
         #expect(s.hoveredWindow == nil)
     }

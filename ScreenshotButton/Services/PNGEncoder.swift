@@ -1,5 +1,5 @@
-import Foundation
 import CoreGraphics
+import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
@@ -8,9 +8,11 @@ enum PNGEncoder {
 
     static func encode(_ image: CGImage, dpi: CGFloat = 144) throws -> Data {
         let data = NSMutableData()
-        guard let dest = CGImageDestinationCreateWithData(
-            data, UTType.png.identifier as CFString, 1, nil
-        ) else {
+        guard
+            let dest = CGImageDestinationCreateWithData(
+                data, UTType.png.identifier as CFString, 1, nil
+            )
+        else {
             throw Failure.encodingFailed
         }
         let properties: [CFString: Any] = [

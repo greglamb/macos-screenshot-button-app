@@ -1,7 +1,7 @@
-import Foundation
 import CoreGraphics
-import Observation
+import Foundation
 import OSLog
+import Observation
 import ScreenCaptureKit
 
 @MainActor

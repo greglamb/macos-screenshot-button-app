@@ -1,5 +1,6 @@
-import Testing
 import CoreGraphics
+import Testing
+
 @testable import ScreenshotButton
 
 @Suite("CapturedWindow")

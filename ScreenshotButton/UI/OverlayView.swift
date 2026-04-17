@@ -67,9 +67,9 @@ final class OverlayView: NSView {
 
     override func keyDown(with event: NSEvent) {
         switch event.keyCode {
-        case 53:  manager?.didPressEscape()           // Esc
-        case 49:  manager?.didPressSpace()            // Space
-        default:  super.keyDown(with: event)
+        case 53: manager?.didPressEscape()  // Esc
+        case 49: manager?.didPressSpace()  // Space
+        default: super.keyDown(with: event)
         }
     }
 

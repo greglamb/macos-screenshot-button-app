@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Run swift-format + SwiftLint on the project. CI uses this script as
+# the single lint gate — exit 0 means clean, non-zero means violations.
+#
+# Usage:
+#   ./bin/lint          # check only (CI mode)
+#   ./bin/lint --fix    # auto-fix what can be fixed, then check remainder
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+FIX=false
+if [[ "${1:-}" == "--fix" ]]; then
+  FIX=true
+fi
+
+EXIT=0
+
+echo "==> swift-format"
+if $FIX; then
+  swift format format --in-place --recursive ScreenshotButton ScreenshotButtonTests 2>&1
+  echo "    (auto-formatted)"
+fi
+if ! swift format lint --recursive ScreenshotButton ScreenshotButtonTests 2>&1; then
+  echo "    ✘ swift-format violations found. Run: ./bin/lint --fix"
+  EXIT=1
+else
+  echo "    ✔ clean"
+fi
+
+echo "==> swiftlint"
+if $FIX; then
+  swiftlint lint --fix --quiet 2>&1
+  echo "    (auto-fixed)"
+fi
+if ! swiftlint lint --strict --quiet 2>&1; then
+  echo "    ✘ swiftlint violations found"
+  EXIT=1
+else
+  echo "    ✔ clean"
+fi
+
+exit $EXIT

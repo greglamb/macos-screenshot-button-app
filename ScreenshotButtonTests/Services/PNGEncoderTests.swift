@@ -1,6 +1,7 @@
-import Testing
 import CoreGraphics
 import ImageIO
+import Testing
+
 @testable import ScreenshotButton
 
 @Suite("PNG encoding")
@@ -16,11 +17,13 @@ struct PNGEncoderTests {
     }
 
     private func makeTestImage(width: Int, height: Int) -> CGImage? {
-        guard let ctx = CGContext(
-            data: nil, width: width, height: height, bitsPerComponent: 8,
-            bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { return nil }
+        guard
+            let ctx = CGContext(
+                data: nil, width: width, height: height, bitsPerComponent: 8,
+                bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            )
+        else { return nil }
         ctx.setFillColor(CGColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1))
         ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
         return ctx.makeImage()

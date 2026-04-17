@@ -1,14 +1,16 @@
-import Testing
-import Foundation
 import CoreGraphics
+import Foundation
+import Testing
+
 @testable import ScreenshotButton
 
 @MainActor
 @Suite("FileSink")
 struct FileSinkTests {
-    @Test("Writes a PNG and asks the opener to open it",
-          .tags(.fileSystem, .slow),
-          .timeLimit(.minutes(1)))
+    @Test(
+        "Writes a PNG and asks the opener to open it",
+        .tags(.fileSystem, .slow),
+        .timeLimit(.minutes(1)))
     func fileSinkWritesPngThenOpensInPreview() async throws {
         let writer = FakeFileWriter()
         let opener = FakePreviewOpener()

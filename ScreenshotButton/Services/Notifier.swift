@@ -1,6 +1,6 @@
+import AppKit
 import Foundation
 import UserNotifications
-import AppKit
 
 @MainActor
 protocol URLOpening {
@@ -71,7 +71,8 @@ final class Notifier: NSObject, Notifying {
             await self?.requestAuthorization()
             let content = UNMutableNotificationContent()
             content.title = "Screen Recording permission required"
-            content.body = "ScreenshotButton needs Screen Recording access in System Settings to capture windows and regions."
+            content.body =
+                "ScreenshotButton needs Screen Recording access in System Settings to capture windows and regions."
             content.categoryIdentifier = Self.permissionCategory
             let req = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
             try? await UNUserNotificationCenter.current().add(req)

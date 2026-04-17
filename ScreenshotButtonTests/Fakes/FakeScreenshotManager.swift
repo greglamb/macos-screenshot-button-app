@@ -1,4 +1,5 @@
 import CoreGraphics
+
 @testable import ScreenshotButton
 
 actor FakeScreenshotManager: ScreenshotManaging {

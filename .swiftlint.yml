@@ -1,0 +1,45 @@
+# SwiftLint — correctness + safety rules.
+# Style/formatting is handled by swift-format; SwiftLint focuses on catching
+# bugs and enforcing safety. CI fails on violations (no warn-only).
+
+included:
+  - ScreenshotButton
+  - ScreenshotButtonTests
+
+excluded:
+  - .worktrees
+  - build
+  - build_debug
+  - build_test
+  - "*.xcodeproj"
+
+# Start with a disabled-by-default posture and opt into specific rules.
+# This keeps the rule set small, predictable, and focused on real bugs.
+only_rules:
+  # Safety — force_unwrapping intentionally excluded: project-standards
+  # accepts force-unwrap on compile-time literals and test fixtures.
+  - force_cast
+  - force_try
+  - implicitly_unwrapped_optional
+
+  # Correctness
+  - unused_closure_parameter
+  - unused_control_flow_label
+  - unused_enumerated
+  - unused_optional_binding
+  - duplicate_imports
+  - redundant_discardable_let
+  - implicit_optional_initialization
+  - redundant_void_return
+
+  # Concurrency
+  - class_delegate_protocol
+
+  # Code smell
+  - empty_enum_arguments
+  - empty_parameters
+  - empty_parentheses_with_trailing_closure
+  - legacy_constructor
+  - legacy_hashing
+  - void_return
+

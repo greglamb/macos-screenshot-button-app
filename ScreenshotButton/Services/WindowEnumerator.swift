@@ -1,5 +1,5 @@
-import Foundation
 import CoreGraphics
+import Foundation
 import ScreenCaptureKit
 
 struct WindowEnumerator: SCShareableContentProviding {
@@ -9,7 +9,7 @@ struct WindowEnumerator: SCShareableContentProviding {
         // Apply our filters, keyed by window ID for a z-order join below.
         let scByID: [CGWindowID: SCWindow] = Dictionary(
             uniqueKeysWithValues: content.windows
-                .filter { $0.windowLayer == 0 }            // normal-level only
+                .filter { $0.windowLayer == 0 }  // normal-level only
                 .filter { $0.isOnScreen }
                 .filter { $0.owningApplication != nil }
                 .filter { ($0.title ?? "").isEmpty == false }
