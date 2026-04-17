@@ -42,12 +42,8 @@ jobs:
         run: |
           xcodebuild \
             -project ScreenshotButton.xcodeproj \
-            -scheme ScreenshotButton \
-            -configuration Debug \
-            -derivedDataPath build \
+            -scheme ScreenshotButtonTests \
             -destination 'platform=macOS' \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_REQUIRED=NO \
             test
 
       - name: Verify app bundle
