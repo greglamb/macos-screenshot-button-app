@@ -1,22 +1,5 @@
-import AppKit
 import Foundation
 import UserNotifications
-
-@MainActor
-protocol URLOpening {
-    func open(_ url: URL)
-}
-
-@MainActor
-struct SystemURLOpener: URLOpening {
-    func open(_ url: URL) { NSWorkspace.shared.open(url) }
-}
-
-@MainActor
-protocol Notifying {
-    func post(title: String, body: String)
-    func postPermissionDenied()
-}
 
 @MainActor
 final class Notifier: NSObject, Notifying {
