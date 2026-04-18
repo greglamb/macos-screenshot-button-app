@@ -12,7 +12,9 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 ### Fixed
 
+- Window captures no longer produce an oversized PNG on non-Retina (e.g. HDMI) external monitors. The capture now uses `SCContentFilter.pointPixelScale` rather than a hardcoded `* 2`, so the output matches the filter's native pixel area on every display scale — window content previously ended up stuck in the top-left quadrant of a canvas twice the intended size on non-Retina displays.
 - Single click on a window now registers properly during window selection mode. Previously, the first click was consumed by the `nonactivatingPanel` as a window-key transition, requiring a second click to actually select the window. Now `acceptsFirstMouse(for:)` on the overlay view allows the first click to fire `mouseDown` directly.
+- Mode cursor (crosshair in area mode, pointing hand in window mode) now stays visible when the overlay spans a secondary display. `NSCursor.push()` alone gets reset by the window server on borderless nonactivating panels at `.screenSaver` level, especially across display boundaries; adding `.cursorUpdate` to the overlay's tracking area and re-setting the cursor from `cursorUpdate(with:)` keeps it sticky on every display.
 
 ### Removed
 
