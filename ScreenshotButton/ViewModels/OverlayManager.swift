@@ -8,7 +8,7 @@ private let overlayLog = Logger(subsystem: "dev.greglamb.ScreenshotButton", cate
 @MainActor
 final class OverlayManager {
     let controller: CaptureController
-    let notifier: Notifier
+    let notifier: any Notifying
     private(set) var panels: [OverlayPanel] = []
     private var views: [OverlayView] = []
     private var windows: [CapturedWindow] = []
@@ -18,7 +18,7 @@ final class OverlayManager {
 
     var mode: CaptureMode { controller.session.mode }
 
-    init(controller: CaptureController, notifier: Notifier) {
+    init(controller: CaptureController, notifier: any Notifying) {
         self.controller = controller
         self.notifier = notifier
     }

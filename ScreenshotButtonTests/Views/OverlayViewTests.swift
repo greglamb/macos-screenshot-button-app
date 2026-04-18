@@ -26,7 +26,6 @@ struct OverlayViewTests {
             ),
             clipboardSink: ClipboardSink(pasteboard: FakePasteboard())
         )
-        let notifier = Notifier(opener: FakeURLOpener())
-        return OverlayManager(controller: controller, notifier: notifier)
+        return OverlayManager(controller: controller, notifier: FakeNotifying())
     }
 }

@@ -65,7 +65,7 @@ final class CaptureController {
 
 extension CaptureController {
     func enumerateWindowsOrHandle(
-        notifier: Notifier,
+        notifier: any Notifying,
         onPermissionDenied: @MainActor () -> Void
     ) async -> [CapturedWindow]? {
         do {
