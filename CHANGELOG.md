@@ -12,6 +12,8 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 ### Fixed
 
+- Single click on a window now registers properly during window selection mode. Previously, the first click was consumed by the `nonactivatingPanel` as a window-key transition, requiring a second click to actually select the window. Now `acceptsFirstMouse(for:)` on the overlay view allows the first click to fire `mouseDown` directly.
+
 ### Removed
 
 ## [v0.0.6] - 2026-04-16
