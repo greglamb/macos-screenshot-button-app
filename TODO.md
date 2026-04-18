@@ -20,6 +20,10 @@
 - `ARCHITECTURE.md` lists module sub-directories that materialized as the matching tasks landed; keep it in sync as the layout evolves.
 - The `xcode-build-server`-driven SourceKit index occasionally lags after `xcodegen generate`; `bin/regen` already runs both. If LSP diagnostics persist, run `./bin/regen` again.
 
+## Deferred from HDMI-capture fixes (2026-04-17)
+
+- **Capture-dimension debug logging in `SCScreenshotManagerAdapter`** — the `pointPixelScale`/`width`/`height` wiring is now correct, but silent when wrong. A single `os.Logger.debug("capture dims: \(w)x\(h) @ scale=\(filter.pointPixelScale)")` gated `#if DEBUG` would surface a future regression of this class without shipping verbose logs to users. Flagged during Task 2 code review; out of scope for the fix commit itself.
+
 ## Deferred from final code review (open for v1.1)
 
 - **Integration test for `OverlayManager`** — the most complex file in the repo (Tasks, cancellation, post-`await` state re-check) currently has zero direct tests. Coverage at the coordinator/UI seam is the highest-leverage gap.
