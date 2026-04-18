@@ -31,20 +31,30 @@ final class OverlayView: NSView {
         trackingAreas.forEach { removeTrackingArea($0) }
         let ta = NSTrackingArea(
             rect: bounds,
-            options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            options: [.mouseMoved, .mouseEnteredAndExited, .cursorUpdate, .activeAlways, .inVisibleRect],
             owner: self, userInfo: nil
         )
         addTrackingArea(ta)
     }
 
-    // Cursor lifecycle is owned by `OverlayManager` via `NSCursor.push/pop`,
-    // not by this view. `addCursorRect`/`set()` don't reliably propagate
-    // through borderless `nonactivatingPanel`s at `.screenSaver` level —
-    // push/pop goes onto a global cursor stack the window server respects.
+    // Initial cursor is set by `OverlayManager.pushCursor()` when the overlay
+    // is presented; `cursorUpdate(with:)` re-asserts it on every tracking-area
+    // refresh so the window server can't clobber it on nonactivatingPanels or
+    // when the cursor crosses onto a secondary display.
 
     override func mouseMoved(with event: NSEvent) {
         let screenPoint = screenPoint(for: event)
         manager?.didMove(to: screenPoint, on: self)
+    }
+
+    // Window server can reset the cursor for borderless nonactivatingPanels
+    // at .screenSaver level, especially across display boundaries. Re-setting
+    // the mode cursor from cursorUpdate keeps it sticky — this event fires
+    // whenever AppKit thinks the cursor needs refreshing over our tracking
+    // area.
+    override func cursorUpdate(with event: NSEvent) {
+        let cursor: NSCursor = (manager?.mode == .area) ? .crosshair : .pointingHand
+        cursor.set()
     }
 
     override func mouseDown(with event: NSEvent) {

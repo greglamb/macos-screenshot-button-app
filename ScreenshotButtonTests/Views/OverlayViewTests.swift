@@ -14,6 +14,16 @@ struct OverlayViewTests {
         #expect(view.acceptsFirstMouse(for: nil) == true)
     }
 
+    @Test(
+        "Tracking area includes .cursorUpdate so cursorUpdate(with:) is called as the cursor moves — needed to keep the mode-cursor sticky on nonactivating panels across displays")
+    func trackingAreaIncludesCursorUpdate() throws {
+        let screen = try #require(NSScreen.main)
+        let view = OverlayView(screen: screen, manager: Self.makeManager())
+        view.updateTrackingAreas()
+        let hasCursorUpdate = view.trackingAreas.contains { $0.options.contains(.cursorUpdate) }
+        #expect(hasCursorUpdate == true)
+    }
+
     private static func makeManager() -> OverlayManager {
         let controller = CaptureController(
             enumerator: FakeSCShareableContent(result: .success([])),
