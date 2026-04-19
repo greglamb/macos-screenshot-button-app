@@ -15,7 +15,6 @@ final class OverlayManager {
     private var presentTask: Task<Void, Never>?
     private var deliveryTask: Task<Void, Never>?
     private var cursorPushed = false
-    private var disabledRectWindows: [NSWindow] = []
 
     var mode: CaptureMode { controller.session.mode }
 
@@ -166,19 +165,11 @@ final class OverlayManager {
         windows.removeAll()
     }
 
-    /// Push the mode-appropriate cursor onto the global cursor stack.
-    ///
-    /// Also calls `disableCursorRects()` on every app window first. The
-    /// window server periodically re-resolves the cursor by walking each
-    /// window's cursor-rect tree and calling `-[NSView cursorUpdate:]` on
-    /// matching views; any registered rect (SwiftUI defaults on the
-    /// MenuBarExtra window, or elsewhere) pushes the arrow cursor back on
-    /// top of our push. Disabling rects for the overlay's lifetime lets our
-    /// pushed cursor win on every display, including non-Retina externals.
+    /// Push the mode-appropriate cursor onto the global cursor stack. The
+    /// window server respects the stack across borderless overlay panels
+    /// where `addCursorRect`/`NSCursor.set()` get clobbered.
     private func pushCursor() {
         guard !cursorPushed else { return }
-        disabledRectWindows = NSApp.windows
-        disabledRectWindows.forEach { $0.disableCursorRects() }
         let cursor: NSCursor = mode == .area ? .crosshair : .pointingHand
         cursor.push()
         cursorPushed = true
@@ -187,8 +178,6 @@ final class OverlayManager {
     private func popCursor() {
         guard cursorPushed else { return }
         NSCursor.pop()
-        disabledRectWindows.forEach { $0.enableCursorRects() }
-        disabledRectWindows.removeAll()
         cursorPushed = false
     }
 }
