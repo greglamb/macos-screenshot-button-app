@@ -94,6 +94,33 @@ Total budget: 2 rebuilds max from this point. If we exceed that without confirme
 - Tests — the fix is a single-line API call whose observable behavior is window-server state. Manual verification is the only reliable signal; automated tests would not cover the actual bug.
 - Handling focus-restoration edge cases (e.g., what if the user had no active app). Accept AppKit defaults.
 
+## Phase 1 outcome (recorded 2026-04-19)
+
+**Outcome B — original hypothesis refuted.** Log evidence from the instrumented build (`dev-c3cf1d2`):
+
+```
+pushCursor: mode=window NSApp.isActive=true keyWindow=ScreenshotButton.OverlayPanel
+cursorUpdate fired: mode=window windowIsKey=true
+```
+
+The LSUIElement app IS active, the overlay panel IS key, the `cursorUpdate(with:)` event IS firing on the correct view. `NSApp.activate(ignoringOtherApps: true)` would be a no-op.
+
+## Revised hypothesis
+
+`.cursorUpdate` as a tracking-area option fires **once per cursor entry** into the tracking area, not on every cursor move. Our overlay covers the whole screen — the cursor enters once, never exits. After that single firing of `cursor.set()`, the window server's periodic cursor-rect resolution cycle runs (documented in Avitzur's lldb trace at SO#61984959). That cycle walks registered cursor rects on the view under the cursor and returns the matching rect's cursor, or default arrow if none match.
+
+Our `OverlayView` has **no cursor rects registered**. We deliberately avoided `addCursorRect(_:cursor:)` based on a comment inherited from v0.0.5 claiming the window server clobbers `addCursorRect` results on borderless `nonactivatingPanel`s at `.screenSaver` level. But the v0.0.6 push/pop "fix" never actually rendered the cursor visibly on the development hardware — the CHANGELOG claim was fiction. We cannot trust the v0.0.5 comment as an established fact.
+
+Consequence: on the first cursorUpdate entry, our cursor flashes for less than one frame; then the resolution cycle returns default arrow because we have no cursor rect. The user sees default arrow throughout.
+
+## Revised fix (replaces Phase 2 `NSApp.activate`)
+
+Override `resetCursorRects()` on `OverlayView` and call `addCursorRect(bounds, cursor: modeCursor)`. When `didPressSpace()` toggles the mode, call `self.window?.invalidateCursorRects(for: self)` on each overlay view so the new mode's cursor rect is installed on the next resolution cycle.
+
+Keep the `cursorUpdate(with:)` override in place as a belt-and-suspenders initial-assert; keep the diagnostic logging through this rebuild so we can confirm `resetCursorRects` fires and (if fix works) remove logging in a follow-up commit.
+
+Drop the `NSApp.activate(ignoringOtherApps: true)` plan entirely.
+
 ## Acceptance criteria
 
 After the fix commit:
