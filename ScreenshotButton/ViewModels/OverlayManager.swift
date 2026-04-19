@@ -171,6 +171,7 @@ final class OverlayManager {
     private func pushCursor() {
         guard !cursorPushed else { return }
         let cursor: NSCursor = mode == .area ? .crosshair : .pointingHand
+        overlayLog.info("pushCursor: mode=\(String(describing: self.mode), privacy: .public) NSApp.isActive=\(NSApp.isActive) keyWindow=\(NSApp.keyWindow?.className ?? "nil", privacy: .public)")
         cursor.push()
         cursorPushed = true
     }

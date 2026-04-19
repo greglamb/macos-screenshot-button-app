@@ -1,5 +1,8 @@
 import AppKit
 import CoreGraphics
+import os
+
+private let cursorDebugLog = Logger(subsystem: "dev.greglamb.ScreenshotButton", category: "cursor-debug")
 
 final class OverlayView: NSView {
     weak var manager: OverlayManager?
@@ -53,6 +56,8 @@ final class OverlayView: NSView {
     // whenever AppKit thinks the cursor needs refreshing over our tracking
     // area.
     override func cursorUpdate(with event: NSEvent) {
+        let modeStr = (manager?.mode).map { "\($0)" } ?? "nil"
+        cursorDebugLog.info("cursorUpdate fired: mode=\(modeStr, privacy: .public) windowIsKey=\(self.window?.isKeyWindow == true)")
         let cursor: NSCursor = (manager?.mode == .area) ? .crosshair : .pointingHand
         cursor.set()
     }
