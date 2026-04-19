@@ -70,4 +70,18 @@ _gitignored/
 buildServer.json
 build/
 build_debug/
+build_debug_launch/
 *.profraw
+
+# Code-signing secrets (defense-in-depth — never commit private keys, profiles,
+# or keychain exports even if we don't use these files in-tree today)
+*.p12
+*.mobileprovision
+*.cer
+*.pem
+*.key
+*.p8
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
