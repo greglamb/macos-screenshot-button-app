@@ -144,6 +144,11 @@ final class OverlayManager {
         // Replace the pushed cursor so it matches the new mode.
         popCursor()
         pushCursor()
+        // Cursor rects are mode-specific; force the window server to call
+        // resetCursorRects() again so it installs the new mode's rect.
+        views.forEach { view in
+            view.window?.invalidateCursorRects(for: view)
+        }
     }
 
     /// User-initiated cancel (Esc, click-empty-area, etc.). Tears down UI,

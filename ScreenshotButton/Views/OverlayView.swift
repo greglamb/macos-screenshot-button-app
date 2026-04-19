@@ -40,10 +40,19 @@ final class OverlayView: NSView {
         addTrackingArea(ta)
     }
 
-    // Initial cursor is set by `OverlayManager.pushCursor()` when the overlay
-    // is presented; `cursorUpdate(with:)` re-asserts it on every tracking-area
-    // refresh so the window server can't clobber it on nonactivatingPanels or
-    // when the cursor crosses onto a secondary display.
+    // The window server periodically re-resolves the cursor by walking
+    // registered cursor rects on the view under the cursor. Without a cursor
+    // rect it resolves to default arrow — clobbering our `cursor.set()` from
+    // `cursorUpdate(with:)`. Registering a cursor rect covering the entire
+    // view installs our mode cursor in that resolution pass, so it survives
+    // between `cursorUpdate` events. `OverlayManager` calls
+    // `invalidateCursorRects(for:)` on mode toggle so this reflects the
+    // current mode.
+    override func resetCursorRects() {
+        let cursor: NSCursor = (manager?.mode == .area) ? .crosshair : .pointingHand
+        cursorDebugLog.info("resetCursorRects fired: mode=\(String(describing: self.manager?.mode), privacy: .public)")
+        addCursorRect(bounds, cursor: cursor)
+    }
 
     override func mouseMoved(with event: NSEvent) {
         let screenPoint = screenPoint(for: event)
