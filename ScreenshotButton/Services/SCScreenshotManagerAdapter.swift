@@ -11,8 +11,12 @@ struct SCScreenshotManagerAdapter: ScreenshotManaging {
             }
             let filter = SCContentFilter(desktopIndependentWindow: scWindow)
             let config = SCStreamConfiguration()
-            config.width = Int(scWindow.frame.width * 2)  // Retina
-            config.height = Int(scWindow.frame.height * 2)
+            let (w, h) = PixelSizing.pixels(
+                points: scWindow.frame.size,
+                scale: CGFloat(filter.pointPixelScale)
+            )
+            config.width = w
+            config.height = h
             config.showsCursor = false
             return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
 
@@ -24,8 +28,12 @@ struct SCScreenshotManagerAdapter: ScreenshotManaging {
             let filter = SCContentFilter(display: scDisplay, excludingWindows: [])
             let config = SCStreamConfiguration()
             config.sourceRect = rect
-            config.width = Int(rect.width * 2)
-            config.height = Int(rect.height * 2)
+            let (w, h) = PixelSizing.pixels(
+                points: rect.size,
+                scale: CGFloat(filter.pointPixelScale)
+            )
+            config.width = w
+            config.height = h
             config.showsCursor = false
             return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
         }

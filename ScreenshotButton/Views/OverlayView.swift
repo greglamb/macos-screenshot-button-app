@@ -22,6 +22,11 @@ final class OverlayView: NSView {
     override var acceptsFirstResponder: Bool { true }
     override func becomeFirstResponder() -> Bool { true }
 
+    // `nonactivatingPanel` doesn't receive the first mouseDown by default —
+    // the first click gets consumed as a window-key handoff. Returning true
+    // here makes single-click window selection register on the first try.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
     override func updateTrackingAreas() {
         trackingAreas.forEach { removeTrackingArea($0) }
         let ta = NSTrackingArea(
@@ -31,11 +36,6 @@ final class OverlayView: NSView {
         )
         addTrackingArea(ta)
     }
-
-    // Cursor lifecycle is owned by `OverlayManager` via `NSCursor.push/pop`,
-    // not by this view. `addCursorRect`/`set()` don't reliably propagate
-    // through borderless `nonactivatingPanel`s at `.screenSaver` level —
-    // push/pop goes onto a global cursor stack the window server respects.
 
     override func mouseMoved(with event: NSEvent) {
         let screenPoint = screenPoint(for: event)

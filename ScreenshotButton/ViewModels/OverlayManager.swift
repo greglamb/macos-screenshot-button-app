@@ -8,17 +8,16 @@ private let overlayLog = Logger(subsystem: "dev.greglamb.ScreenshotButton", cate
 @MainActor
 final class OverlayManager {
     let controller: CaptureController
-    let notifier: Notifier
+    let notifier: any Notifying
     private(set) var panels: [OverlayPanel] = []
     private var views: [OverlayView] = []
     private var windows: [CapturedWindow] = []
     private var presentTask: Task<Void, Never>?
     private var deliveryTask: Task<Void, Never>?
-    private var cursorPushed = false
 
     var mode: CaptureMode { controller.session.mode }
 
-    init(controller: CaptureController, notifier: Notifier) {
+    init(controller: CaptureController, notifier: any Notifying) {
         self.controller = controller
         self.notifier = notifier
     }
@@ -63,7 +62,6 @@ final class OverlayManager {
             panel.makeKeyAndOrderFront(nil)
             return v
         }
-        pushCursor()
     }
 
     func didMove(to point: CGPoint, on view: OverlayView) {
@@ -141,9 +139,6 @@ final class OverlayManager {
         controller.session.toggle()
         views.forEach { $0.updateHoveredFrame(nil) }
         views.forEach { $0.setNeedsDisplay($0.bounds) }
-        // Replace the pushed cursor so it matches the new mode.
-        popCursor()
-        pushCursor()
     }
 
     /// User-initiated cancel (Esc, click-empty-area, etc.). Tears down UI,
@@ -158,27 +153,10 @@ final class OverlayManager {
     }
 
     private func tearDown() {
-        popCursor()
         panels.forEach { $0.orderOut(nil) }
         panels.removeAll()
         views.removeAll()
         windows.removeAll()
-    }
-
-    /// Push the mode-appropriate cursor onto the global cursor stack. The
-    /// window server respects the stack across borderless overlay panels
-    /// where `addCursorRect`/`NSCursor.set()` get clobbered.
-    private func pushCursor() {
-        guard !cursorPushed else { return }
-        let cursor: NSCursor = mode == .area ? .crosshair : .pointingHand
-        cursor.push()
-        cursorPushed = true
-    }
-
-    private func popCursor() {
-        guard cursorPushed else { return }
-        NSCursor.pop()
-        cursorPushed = false
     }
 }
 
