@@ -2,9 +2,10 @@
 // Used by bin/gen-icon. Commit regenerated PNGs, not this intermediate output.
 //
 // Design: macOS "squircle" rounded square with a blue→indigo vertical gradient
-// background, four white L-shaped corner marks forming a camera viewfinder.
-// Intentionally minimal — no SF Symbols (Apple HIG prohibits SF Symbols in
-// app icons) and no brand flourishes.
+// background, white rounded-rectangle frame with a concentric ring and filled
+// center dot — evoking SF Symbol `camera.metering.center.weighted`, which is
+// also used as the menu-bar glyph. Intentionally minimal — no SF Symbols in
+// the icon itself (Apple HIG prohibits that) and no brand flourishes.
 
 import AppKit
 import CoreGraphics
@@ -56,27 +57,50 @@ context.drawLinearGradient(
     options: []
 )
 
-// Viewfinder: 4 L-shaped corner marks, white, thick, squared caps.
+// Center-weighted metering motif: rounded-rect frame + concentric ring +
+// filled center dot. All white, centered on the squircle.
 context.resetClip()
-context.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
-context.setLineWidth(64)
-context.setLineCap(.square)
+let white = CGColor(red: 1, green: 1, blue: 1, alpha: 1)
+context.setStrokeColor(white)
+context.setFillColor(white)
 
-let inset: CGFloat = 240
-let armLength: CGFloat = 200
+// Outer rounded-rect frame.
+let frameInset: CGFloat = 220
+let frameRect = CGRect(
+    x: frameInset,
+    y: frameInset,
+    width: size - 2 * frameInset,
+    height: size - 2 * frameInset
+)
+let framePath = CGPath(
+    roundedRect: frameRect,
+    cornerWidth: 56,
+    cornerHeight: 56,
+    transform: nil
+)
+context.setLineWidth(56)
+context.addPath(framePath)
+context.strokePath()
 
-// Each L is drawn as two line segments sharing a vertex at the corner.
-func drawL(cornerX: CGFloat, cornerY: CGFloat, armX: CGFloat, armY: CGFloat) {
-    context.move(to: CGPoint(x: cornerX + armX, y: cornerY))
-    context.addLine(to: CGPoint(x: cornerX, y: cornerY))
-    context.addLine(to: CGPoint(x: cornerX, y: cornerY + armY))
-    context.strokePath()
-}
+// Concentric ring (the "weighted" measurement zone).
+let center = CGPoint(x: size / 2, y: size / 2)
+let ringRadius: CGFloat = 200
+context.setLineWidth(40)
+context.strokeEllipse(in: CGRect(
+    x: center.x - ringRadius,
+    y: center.y - ringRadius,
+    width: ringRadius * 2,
+    height: ringRadius * 2
+))
 
-drawL(cornerX: inset,        cornerY: size - inset, armX:  armLength, armY: -armLength) // top-left
-drawL(cornerX: size - inset, cornerY: size - inset, armX: -armLength, armY: -armLength) // top-right
-drawL(cornerX: inset,        cornerY: inset,        armX:  armLength, armY:  armLength) // bottom-left
-drawL(cornerX: size - inset, cornerY: inset,        armX: -armLength, armY:  armLength) // bottom-right
+// Filled center dot.
+let dotRadius: CGFloat = 96
+context.fillEllipse(in: CGRect(
+    x: center.x - dotRadius,
+    y: center.y - dotRadius,
+    width: dotRadius * 2,
+    height: dotRadius * 2
+))
 
 guard let cgImage = context.makeImage() else { exit(1) }
 let bitmap = NSBitmapImageRep(cgImage: cgImage)

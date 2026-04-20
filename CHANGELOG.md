@@ -10,6 +10,8 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 ### Changed
 
+- App icon and menu-bar glyph redesigned around the SF Symbol `camera.metering.center.weighted` — a rounded-rect frame with a concentric ring and filled center dot. The menu-bar icon now uses the symbol directly; the app icon retains the blue→indigo squircle background but replaces the four L-shaped viewfinder corners with a design that mirrors the symbol.
+
 ### Fixed
 
 - Window captures no longer produce an oversized PNG on non-Retina (e.g. HDMI) external monitors. The capture now uses `SCContentFilter.pointPixelScale` rather than a hardcoded `* 2`, so the output matches the filter's native pixel area on every display scale — window content previously ended up stuck in the top-left quadrant of a canvas twice the intended size on non-Retina displays.

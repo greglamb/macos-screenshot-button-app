@@ -19,7 +19,7 @@ struct ScreenshotButtonApp: App {
                 overlays.begin(mode: mode, sink: sink)
             }
         } label: {
-            Image(systemName: "viewfinder")
+            Image(systemName: "camera.metering.center.weighted")
                 .accessibilityLabel("ScreenshotButton")
                 .task(priority: .background) {
                     // Fire auth and temp cleanup concurrently: a stalled permission prompt
