@@ -68,6 +68,10 @@ targets:
           # which overrides this setting; they are unaffected.
           CODE_SIGN_IDENTITY: "Developer ID Application"
           DEVELOPMENT_TEAM: 35SBJGS259
+          # Hardened runtime is required for notarized Release, but it
+          # blocks the XCTest runner from injecting into the host app.
+          # Disable for Debug only — Release still inherits YES from base.
+          ENABLE_HARDENED_RUNTIME: NO
     scheme:
       testTargets:
         - ScreenshotButtonTests

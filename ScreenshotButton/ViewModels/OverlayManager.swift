@@ -14,7 +14,6 @@ final class OverlayManager {
     private var windows: [CapturedWindow] = []
     private var presentTask: Task<Void, Never>?
     private var deliveryTask: Task<Void, Never>?
-    private var cursorPushed = false
 
     var mode: CaptureMode { controller.session.mode }
 
@@ -63,7 +62,6 @@ final class OverlayManager {
             panel.makeKeyAndOrderFront(nil)
             return v
         }
-        pushCursor()
     }
 
     func didMove(to point: CGPoint, on view: OverlayView) {
@@ -141,14 +139,6 @@ final class OverlayManager {
         controller.session.toggle()
         views.forEach { $0.updateHoveredFrame(nil) }
         views.forEach { $0.setNeedsDisplay($0.bounds) }
-        // Replace the pushed cursor so it matches the new mode.
-        popCursor()
-        pushCursor()
-        // Cursor rects are mode-specific; force the window server to call
-        // resetCursorRects() again so it installs the new mode's rect.
-        views.forEach { view in
-            view.window?.invalidateCursorRects(for: view)
-        }
     }
 
     /// User-initiated cancel (Esc, click-empty-area, etc.). Tears down UI,
@@ -163,28 +153,10 @@ final class OverlayManager {
     }
 
     private func tearDown() {
-        popCursor()
         panels.forEach { $0.orderOut(nil) }
         panels.removeAll()
         views.removeAll()
         windows.removeAll()
-    }
-
-    /// Push the mode-appropriate cursor onto the global cursor stack. The
-    /// window server respects the stack across borderless overlay panels
-    /// where `addCursorRect`/`NSCursor.set()` get clobbered.
-    private func pushCursor() {
-        guard !cursorPushed else { return }
-        let cursor: NSCursor = mode == .area ? .crosshair : .pointingHand
-        overlayLog.info("pushCursor: mode=\(String(describing: self.mode), privacy: .public) NSApp.isActive=\(NSApp.isActive) keyWindow=\(NSApp.keyWindow?.className ?? "nil", privacy: .public)")
-        cursor.push()
-        cursorPushed = true
-    }
-
-    private func popCursor() {
-        guard cursorPushed else { return }
-        NSCursor.pop()
-        cursorPushed = false
     }
 }
 

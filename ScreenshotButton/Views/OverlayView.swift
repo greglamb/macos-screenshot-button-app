@@ -1,8 +1,5 @@
 import AppKit
 import CoreGraphics
-import os
-
-private let cursorDebugLog = Logger(subsystem: "dev.greglamb.ScreenshotButton", category: "cursor-debug")
 
 final class OverlayView: NSView {
     weak var manager: OverlayManager?
@@ -34,41 +31,15 @@ final class OverlayView: NSView {
         trackingAreas.forEach { removeTrackingArea($0) }
         let ta = NSTrackingArea(
             rect: bounds,
-            options: [.mouseMoved, .mouseEnteredAndExited, .cursorUpdate, .activeAlways, .inVisibleRect],
+            options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
             owner: self, userInfo: nil
         )
         addTrackingArea(ta)
     }
 
-    // The window server periodically re-resolves the cursor by walking
-    // registered cursor rects on the view under the cursor. Without a cursor
-    // rect it resolves to default arrow — clobbering our `cursor.set()` from
-    // `cursorUpdate(with:)`. Registering a cursor rect covering the entire
-    // view installs our mode cursor in that resolution pass, so it survives
-    // between `cursorUpdate` events. `OverlayManager` calls
-    // `invalidateCursorRects(for:)` on mode toggle so this reflects the
-    // current mode.
-    override func resetCursorRects() {
-        let cursor: NSCursor = (manager?.mode == .area) ? .crosshair : .pointingHand
-        cursorDebugLog.info("resetCursorRects fired: mode=\(String(describing: self.manager?.mode), privacy: .public)")
-        addCursorRect(bounds, cursor: cursor)
-    }
-
     override func mouseMoved(with event: NSEvent) {
         let screenPoint = screenPoint(for: event)
         manager?.didMove(to: screenPoint, on: self)
-    }
-
-    // Window server can reset the cursor for borderless nonactivatingPanels
-    // at .screenSaver level, especially across display boundaries. Re-setting
-    // the mode cursor from cursorUpdate keeps it sticky — this event fires
-    // whenever AppKit thinks the cursor needs refreshing over our tracking
-    // area.
-    override func cursorUpdate(with event: NSEvent) {
-        let modeStr = (manager?.mode).map { "\($0)" } ?? "nil"
-        cursorDebugLog.info("cursorUpdate fired: mode=\(modeStr, privacy: .public) windowIsKey=\(self.window?.isKeyWindow == true)")
-        let cursor: NSCursor = (manager?.mode == .area) ? .crosshair : .pointingHand
-        cursor.set()
     }
 
     override func mouseDown(with event: NSEvent) {
