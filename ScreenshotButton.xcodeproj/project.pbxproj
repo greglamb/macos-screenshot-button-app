@@ -73,6 +73,7 @@
 		EF3C083A66AFD36F7B183673 /* FakeFileWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3486038FE2699A4D9A8528 /* FakeFileWriter.swift */; };
 		EF80D26220DE0BD832F1DC39 /* FakePasteboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CB36BF08797B6405442BE99 /* FakePasteboard.swift */; };
 		EF9F80776C71855D4E607DE8 /* CaptureController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E3FA1A55629F33DC2CC3320 /* CaptureController.swift */; };
+		FA6A823FBF9DAAD34EECD6B8 /* FakeHotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B57A8B61360D72AC31B9F8F /* FakeHotkeyMonitor.swift */; };
 		FC6406B53D2D5A47A90C5514 /* FileWriting.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1498D9C9067CDABBE29E8A6 /* FileWriting.swift */; };
 /* End PBXBuildFile section */
 
@@ -95,6 +96,7 @@
 		1828EB7E689E95DBEB70E52E /* OverlayViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayViewTests.swift; sourceTree = "<group>"; };
 		1E3FA1A55629F33DC2CC3320 /* CaptureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureController.swift; sourceTree = "<group>"; };
 		1E467BC791E8F69462A03FF6 /* Capturer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Capturer.swift; sourceTree = "<group>"; };
+		2B57A8B61360D72AC31B9F8F /* FakeHotkeyMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeHotkeyMonitor.swift; sourceTree = "<group>"; };
 		32C1501299D9EC2E91ECECF1 /* SystemSMAppService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSMAppService.swift; sourceTree = "<group>"; };
 		3402F838F9ED6B1CFEBAF2D5 /* SystemPasteboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPasteboard.swift; sourceTree = "<group>"; };
 		340368A8E524522CBF1780C7 /* ScreenCoordinatesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCoordinatesTests.swift; sourceTree = "<group>"; };
@@ -271,6 +273,7 @@
 			isa = PBXGroup;
 			children = (
 				EE3486038FE2699A4D9A8528 /* FakeFileWriter.swift */,
+				2B57A8B61360D72AC31B9F8F /* FakeHotkeyMonitor.swift */,
 				BE4351E24A4B4DD84CFE00E4 /* FakeNotifying.swift */,
 				7CB36BF08797B6405442BE99 /* FakePasteboard.swift */,
 				156E9DCD907DF6C012B05817 /* FakePreviewOpener.swift */,
@@ -521,6 +524,7 @@
 				8DFFE82A20D34F449669008B /* CapturerTests.swift in Sources */,
 				3F325FAED5F80F5D7A7508C9 /* ClipboardSinkTests.swift in Sources */,
 				EF3C083A66AFD36F7B183673 /* FakeFileWriter.swift in Sources */,
+				FA6A823FBF9DAAD34EECD6B8 /* FakeHotkeyMonitor.swift in Sources */,
 				CC2373743A35BA4ABCDA3F5D /* FakeNotifying.swift in Sources */,
 				EF80D26220DE0BD832F1DC39 /* FakePasteboard.swift in Sources */,
 				5481B89C6AB931BB06C6CB42 /* FakePreviewOpener.swift in Sources */,
