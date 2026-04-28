@@ -27,6 +27,7 @@
 		482467C99D13847B4326FA06 /* HotkeyBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC478E757F39AA824EEBEFCC /* HotkeyBinding.swift */; };
 		4AF81F874604C6E1C89462F2 /* OverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E169248247C121058C17D2DB /* OverlayPanel.swift */; };
 		4B1F9A5ABD4F92E0536D73D3 /* CaptureControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DA1688B0AB3CF83D4732DAF /* CaptureControllerTests.swift */; };
+		4B25B4E6C6D14021AA41BEC1 /* HotkeyMonitoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3FF6E924EC4F929D596A71E /* HotkeyMonitoring.swift */; };
 		530B212AC4B20C1D73B782CD /* SystemPreviewOpener.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E93FE8B878880901826758 /* SystemPreviewOpener.swift */; };
 		5481B89C6AB931BB06C6CB42 /* FakePreviewOpener.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156E9DCD907DF6C012B05817 /* FakePreviewOpener.swift */; };
 		5ED2A22225952E2AA88C84C5 /* AreaGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E0623479B701CF274D804BE /* AreaGeometry.swift */; };
@@ -135,6 +136,7 @@
 		B7E3BD871ACC45D861B1AA7E /* PasteboardWriting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteboardWriting.swift; sourceTree = "<group>"; };
 		BE4351E24A4B4DD84CFE00E4 /* FakeNotifying.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeNotifying.swift; sourceTree = "<group>"; };
 		C1C5C2FFB71C997997336FFC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D3FF6E924EC4F929D596A71E /* HotkeyMonitoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyMonitoring.swift; sourceTree = "<group>"; };
 		D427297EA0E044B7748874CE /* SCShareableContentProviding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCShareableContentProviding.swift; sourceTree = "<group>"; };
 		D4D3E832F52B33D9505F25E3 /* WindowEnumerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowEnumerator.swift; sourceTree = "<group>"; };
 		D6E8C205AD6EAB2D9906F4E2 /* URLOpening.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLOpening.swift; sourceTree = "<group>"; };
@@ -234,6 +236,7 @@
 				4F36346095336C2236A9DBB1 /* ClipboardSink.swift */,
 				83D5C7D7713FE2DDA99D5BEA /* FileSink.swift */,
 				F1498D9C9067CDABBE29E8A6 /* FileWriting.swift */,
+				D3FF6E924EC4F929D596A71E /* HotkeyMonitoring.swift */,
 				5EA64D9F703B88977F39F3DC /* LaunchAtLogin.swift */,
 				FE35091118D1BA5658EB4541 /* Notifier.swift */,
 				8899B8BA792FD2D3EA0BE9AE /* Notifying.swift */,
@@ -477,6 +480,7 @@
 				FC6406B53D2D5A47A90C5514 /* FileWriting.swift in Sources */,
 				BCE9374E1274B69F1A292895 /* HitTesting.swift in Sources */,
 				482467C99D13847B4326FA06 /* HotkeyBinding.swift in Sources */,
+				4B25B4E6C6D14021AA41BEC1 /* HotkeyMonitoring.swift in Sources */,
 				29C5C4EE7CFD3C1DDE0121B7 /* LaunchAtLogin.swift in Sources */,
 				D851E29B9840B6A496DCA208 /* MenuView.swift in Sources */,
 				8CEAEB1D39769F238A6016DC /* Notifier.swift in Sources */,
