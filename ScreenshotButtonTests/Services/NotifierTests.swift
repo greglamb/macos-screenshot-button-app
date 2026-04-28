@@ -7,13 +7,24 @@ import Testing
 @Suite("Notifier")
 struct NotifierTests {
     @Test("Open Settings action routes to the Screen Recording privacy URL")
-    func openSettingsActionRoutesToScreenRecordingURL() async {
+    func screenRecordingActionRoutes() async {
         let opener = FakeURLOpener()
         let notifier = Notifier(opener: opener)
 
-        await notifier.handle(actionIdentifier: Notifier.openSettingsAction)
+        await notifier.handle(actionIdentifier: Notifier.openScreenRecordingSettingsAction)
 
         let expected = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+        #expect(opener.openedURLs == [expected])
+    }
+
+    @Test("Open Settings action routes to the Input Monitoring privacy URL")
+    func inputMonitoringActionRoutes() async {
+        let opener = FakeURLOpener()
+        let notifier = Notifier(opener: opener)
+
+        await notifier.handle(actionIdentifier: Notifier.openInputMonitoringSettingsAction)
+
+        let expected = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!
         #expect(opener.openedURLs == [expected])
     }
 

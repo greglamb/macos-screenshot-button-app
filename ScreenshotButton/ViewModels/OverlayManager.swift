@@ -34,7 +34,7 @@ final class OverlayManager {
 
     private func present() async {
         let fetched = await controller.enumerateWindowsOrHandle(notifier: notifier) { [notifier] in
-            notifier.postPermissionDenied()
+            notifier.postPermissionDenied(kind: .screenRecording)
         }
         // Re-check state — user may have hit Esc on the menu while we awaited.
         guard controller.session.state == .capturing, let fetched else {
@@ -86,7 +86,7 @@ final class OverlayManager {
             } catch is CancellationError {
                 self.controller.cancel()
             } catch let error as SCStreamError where error.code == .userDeclined {
-                self.notifier.postPermissionDenied()
+                self.notifier.postPermissionDenied(kind: .screenRecording)
                 self.controller.cancel()
             } catch {
                 self.notifier.post(title: "Capture failed", body: "Please try again.")
@@ -122,7 +122,7 @@ final class OverlayManager {
             } catch is CancellationError {
                 self.controller.cancel()
             } catch let error as SCStreamError where error.code == .userDeclined {
-                self.notifier.postPermissionDenied()
+                self.notifier.postPermissionDenied(kind: .screenRecording)
                 self.controller.cancel()
             } catch {
                 self.notifier.post(title: "Capture failed", body: "Please try again.")

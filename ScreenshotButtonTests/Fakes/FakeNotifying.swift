@@ -10,13 +10,13 @@ struct RecordedPost: Equatable {
 @MainActor
 final class FakeNotifying: Notifying {
     var posts: [RecordedPost] = []
-    var permissionDeniedCount = 0
+    var permissionDeniedKinds: [PermissionKind] = []
 
     func post(title: String, body: String) {
         posts.append(RecordedPost(title: title, body: body))
     }
 
-    func postPermissionDenied() {
-        permissionDeniedCount += 1
+    func postPermissionDenied(kind: PermissionKind) {
+        permissionDeniedKinds.append(kind)
     }
 }
