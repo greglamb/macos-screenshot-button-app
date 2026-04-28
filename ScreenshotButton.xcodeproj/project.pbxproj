@@ -13,6 +13,7 @@
 		1906F5712176A7DF18C7DF35 /* NotifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E932496C45317E1C25983600 /* NotifierTests.swift */; };
 		1B7C985B6C6E1D82C755650C /* Tags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E555FA3FC9F9A99F4F31FC3 /* Tags.swift */; };
 		21DF91DA221873E06917F3CC /* PNGEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EF8FF0A44108EF713723C8E /* PNGEncoder.swift */; };
+		2336379950E76F90BABA30C6 /* HotkeyBindingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E01357AEA7B9F58E7C5307A /* HotkeyBindingTests.swift */; };
 		2503BD695E89BA3DF2A0554B /* ClipboardSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F36346095336C2236A9DBB1 /* ClipboardSink.swift */; };
 		25B55DD0A88D066DEFF9B34D /* TempCleanup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E574F641C2B7411EE92AF546 /* TempCleanup.swift */; };
 		29756FAE89C56F7606CD48D9 /* CaptureMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB8D45A7EE5FDC96ED8C89B0 /* CaptureMode.swift */; };
@@ -23,6 +24,7 @@
 		3ECC38828F3FD1FBC8B446B2 /* CapturedWindowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DFE0185078113279B9943D8 /* CapturedWindowTests.swift */; };
 		3F325FAED5F80F5D7A7508C9 /* ClipboardSinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67AE72349F8196578412D2D2 /* ClipboardSinkTests.swift */; };
 		46E48B8DC89AC9D3F26BB1F6 /* SCShareableContentProviding.swift in Sources */ = {isa = PBXBuildFile; fileRef = D427297EA0E044B7748874CE /* SCShareableContentProviding.swift */; };
+		482467C99D13847B4326FA06 /* HotkeyBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC478E757F39AA824EEBEFCC /* HotkeyBinding.swift */; };
 		4AF81F874604C6E1C89462F2 /* OverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E169248247C121058C17D2DB /* OverlayPanel.swift */; };
 		4B1F9A5ABD4F92E0536D73D3 /* CaptureControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DA1688B0AB3CF83D4732DAF /* CaptureControllerTests.swift */; };
 		530B212AC4B20C1D73B782CD /* SystemPreviewOpener.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E93FE8B878880901826758 /* SystemPreviewOpener.swift */; };
@@ -119,6 +121,7 @@
 		85753258F85049457BE80375 /* AutolaunchHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutolaunchHandlerTests.swift; sourceTree = "<group>"; };
 		8899B8BA792FD2D3EA0BE9AE /* Notifying.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifying.swift; sourceTree = "<group>"; };
 		88D756A09656BD53D1E122FD /* OverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayManager.swift; sourceTree = "<group>"; };
+		8E01357AEA7B9F58E7C5307A /* HotkeyBindingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyBindingTests.swift; sourceTree = "<group>"; };
 		8EADA8D8E7DDABF097BDFE1B /* PreviewOpening.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewOpening.swift; sourceTree = "<group>"; };
 		900AF40AA1DBB5799808A929 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		92F0C88BBA392EC118F2AC10 /* ScreenshotButton.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScreenshotButton.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -127,6 +130,7 @@
 		AA51C029C8887895DCD69BD4 /* CaptureSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionTests.swift; sourceTree = "<group>"; };
 		AAA9A09E94780AA9E2B55A99 /* CapturedWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturedWindow.swift; sourceTree = "<group>"; };
 		AB79B314FB1B7984EFB3E8BC /* FakeSCShareableContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeSCShareableContent.swift; sourceTree = "<group>"; };
+		AC478E757F39AA824EEBEFCC /* HotkeyBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyBinding.swift; sourceTree = "<group>"; };
 		AE5D5403C4FE0073AF05E814 /* SMAppServiceAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMAppServiceAPI.swift; sourceTree = "<group>"; };
 		B7E3BD871ACC45D861B1AA7E /* PasteboardWriting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteboardWriting.swift; sourceTree = "<group>"; };
 		BE4351E24A4B4DD84CFE00E4 /* FakeNotifying.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeNotifying.swift; sourceTree = "<group>"; };
@@ -196,6 +200,7 @@
 				AAA9A09E94780AA9E2B55A99 /* CapturedWindow.swift */,
 				DB8D45A7EE5FDC96ED8C89B0 /* CaptureMode.swift */,
 				062F30A6F6F15DED7F730A32 /* HitTesting.swift */,
+				AC478E757F39AA824EEBEFCC /* HotkeyBinding.swift */,
 				E125C6389B041CBEDA68B75C /* PixelSizing.swift */,
 				543F801D680D386BAB5ECF22 /* ScreenCoordinates.swift */,
 				F9D3D2D56BEE57CFC38739A0 /* SinkKind.swift */,
@@ -303,6 +308,7 @@
 				7A98062004FE602BBB1ED439 /* AreaGeometryTests.swift */,
 				9DFE0185078113279B9943D8 /* CapturedWindowTests.swift */,
 				ED182C6251F17E9E0AAC2981 /* HitTestingTests.swift */,
+				8E01357AEA7B9F58E7C5307A /* HotkeyBindingTests.swift */,
 				34AEA894DB5AD5E5B913627E /* PixelSizingTests.swift */,
 				340368A8E524522CBF1780C7 /* ScreenCoordinatesTests.swift */,
 			);
@@ -470,6 +476,7 @@
 				D6FC5A0F99360A387FC1C30D /* FileSink.swift in Sources */,
 				FC6406B53D2D5A47A90C5514 /* FileWriting.swift in Sources */,
 				BCE9374E1274B69F1A292895 /* HitTesting.swift in Sources */,
+				482467C99D13847B4326FA06 /* HotkeyBinding.swift in Sources */,
 				29C5C4EE7CFD3C1DDE0121B7 /* LaunchAtLogin.swift in Sources */,
 				D851E29B9840B6A496DCA208 /* MenuView.swift in Sources */,
 				8CEAEB1D39769F238A6016DC /* Notifier.swift in Sources */,
@@ -519,6 +526,7 @@
 				A0E6A461189C15275EEB656A /* FakeURLOpener.swift in Sources */,
 				76B019FA97AE576614C6135C /* FileSinkTests.swift in Sources */,
 				2B89A5235E04E247274965D5 /* HitTestingTests.swift in Sources */,
+				2336379950E76F90BABA30C6 /* HotkeyBindingTests.swift in Sources */,
 				D786D52DE2209180EB64C5DF /* LaunchAtLoginTests.swift in Sources */,
 				1906F5712176A7DF18C7DF35 /* NotifierTests.swift in Sources */,
 				B774B2A88ECBDF1A3FB76F84 /* OverlayViewTests.swift in Sources */,
