@@ -2,7 +2,7 @@
 
 ## Deferred from v1
 
-- **Global hotkeys** for the four capture modes — scope-cut to keep v1 menu-only. No hotkey recorder UI, no collision-detection with macOS's built-in `Cmd-Shift-3/4/5`.
+- **Global hotkeys** for the four capture modes — scope-cut to keep v1 menu-only. No hotkey recorder UI, no collision-detection with macOS's built-in `Cmd-Shift-3/4/5`. (First slice — Area-to-Clipboard only — designed 2026-04-28: `docs/superpowers/specs/2026-04-28-area-to-clipboard-hotkey-design.md`.)
 - **Cursor inclusion** option (currently always off; matches macOS default).
 - **Sparkle auto-updates** — brew handles updates for now.
 - **Configurable save location** — v1 writes to `NSTemporaryDirectory()` and hands the file to Preview; user saves via Preview's Save dialog.
@@ -71,3 +71,17 @@ Full history preserved in git on the `fix/capture-bugs` branch (commits from 202
 - **Re-entry handling in `OverlayManager.begin`** — currently a silent no-op when a session is already in flight. Consider dismissing the in-flight session first, or surfacing a console log.
 - **Tighter window-picker filtering** — the current `SCShareableContent` filter excludes off-screen/minimized/untitled windows, but still admits sub-pixel windows (tooltips, invisible helpers) and non-normal layers (menu bar, floating panels). If users report picking chrome, add `frame.width/height >= 20` and `windowLayer == 0`.
 - **`Casks/screenshotbutton.rb` `zap trash:` audit (resolved 2026-04-14):** Confirmed `LaunchAtLogin.setEnabled` writes the `launchAtLogin` flag via `UserDefaults.standard`, which lands in `~/Library/Preferences/dev.greglamb.ScreenshotButton.plist`. The existing `zap trash:` entry is correct; no change needed.
+
+## Rejected approaches
+
+### Area-to-Clipboard hotkey design (2026-04-28)
+
+Considered and rejected during brainstorming for `docs/superpowers/specs/2026-04-28-area-to-clipboard-hotkey-design.md`:
+
+- **Carbon `RegisterEventHotKey`** — initial recommendation. Modern API preferred by user; the "intercept" property of Carbon stops mattering once Fn+F-key is the input gesture (no competing system action to step on).
+- **Submenu inside the menu-bar dropdown (no Settings window)** — cheaper to ship but contradicts the user's explicit request for "an options screen opened from the drop down menu." Doesn't scale past one row.
+- **Hotkey recorder UI (any modifier + any key)** — overbuilt for a single-binding v1. `Picker<F1…F19>` matches "function key" framing exactly.
+- **F-key + optional modifiers** — briefly recommended; rejected by user in favor of plain F-keys with Fn handled by the OS.
+- **`PreferencesStore` protocol around `UserDefaults`** — YAGNI. Tests inject `UserDefaults(suiteName: UUID().uuidString)` directly per Apple's documented testing pattern.
+- **Expose all four capture modes in v1** — rejected in favor of A→C only. Persistence is dictionary-typed so adding rows is a UI-only change later.
+- **Live revocation polling** — overkill for one hotkey. We surface denial state on the next `apply` call instead.
