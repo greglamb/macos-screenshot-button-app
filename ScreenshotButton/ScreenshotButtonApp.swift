@@ -53,7 +53,9 @@ struct ScreenshotButtonApp: App {
                     await hotkeySettings.start()
                     _ = await auth
                 }
-                .task {
+                .onReceive(
+                    NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)
+                ) { note in
                     // Revert to .accessory (no Dock icon) when the Settings
                     // window closes. MenuView sets policy to .regular when
                     // "Settings…" is tapped so the window can surface above
@@ -61,19 +63,20 @@ struct ScreenshotButtonApp: App {
                     // Filter: any non-OverlayPanel window with a content
                     // view controller is the SwiftUI Settings window
                     // (overlay panels are NSPanel; their contentView is
-                    // set, not contentViewController). The .task body
-                    // inherits @MainActor isolation from the View, so
-                    // direct access to @MainActor APIs is safe.
-                    let log = Logger(subsystem: "dev.greglamb.ScreenshotButton", category: "menu")
-                    let center = NotificationCenter.default
-                    for await note in center.notifications(named: NSWindow.willCloseNotification) {
-                        guard let win = note.object as? NSWindow,
-                              !(win is OverlayPanel),
-                              win.contentViewController != nil
-                        else { continue }
-                        log.info("Settings closed; reverting activation policy to .accessory")
-                        NSApp.setActivationPolicy(.accessory)
-                    }
+                    // set, not contentViewController). onReceive's closure
+                    // is delivered on the main actor by SwiftUI; this
+                    // avoids the Swift 6 strict-concurrency Sendable issue
+                    // with NotificationCenter.notifications(named:) async
+                    // sequence (Notification? is non-Sendable in CI's
+                    // Swift toolchain, even though notification.object
+                    // access is safe on main).
+                    guard let win = note.object as? NSWindow,
+                          !(win is OverlayPanel),
+                          win.contentViewController != nil
+                    else { return }
+                    Logger(subsystem: "dev.greglamb.ScreenshotButton", category: "menu")
+                        .info("Settings closed; reverting activation policy to .accessory")
+                    NSApp.setActivationPolicy(.accessory)
                 }
         }
 
