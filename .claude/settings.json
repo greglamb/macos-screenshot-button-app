@@ -1,5 +1,6 @@
 {
   "enabledPlugins": {
-    "swift-dev@claude-gcode-tools": true
+    "swift-dev@claude-gcode-tools": true,
+    "axiom@axiom-marketplace": true
   }
 }
