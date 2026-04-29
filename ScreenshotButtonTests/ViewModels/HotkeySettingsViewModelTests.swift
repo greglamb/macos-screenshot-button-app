@@ -54,4 +54,92 @@ struct HotkeySettingsViewModelTests {
 
         #expect(vm.binding == nil)
     }
+
+    @Test("setBinding(F5) with .applied outcome stores, persists, no banner")
+    func setBindingAppliedPath() throws {
+        let monitor = FakeHotkeyMonitor()
+        monitor.nextOutcome = .applied
+        let defaults = Self.ephemeralDefaults()
+        let notifier = FakeNotifying()
+        let vm = HotkeySettingsViewModel(
+            monitor: monitor, defaults: defaults,
+            opener: FakeURLOpener(), notifier: notifier
+        )
+        let f5 = HotkeyBinding(fKeyNumber: 5)!
+
+        vm.setBinding(f5)
+
+        #expect(vm.binding == f5)
+        #expect(vm.permissionDenied == false)
+        #expect(monitor.applyCalls == [f5])
+        #expect(notifier.permissionDeniedKinds.isEmpty)
+
+        let stored = defaults.data(forKey: HotkeySettingsViewModel.defaultsKey)
+        let decoded = try JSONDecoder().decode(HotkeyBinding.self, from: #require(stored))
+        #expect(decoded == f5)
+    }
+
+    @Test("setBinding(F5) with .permissionDenied still persists intent and posts banner")
+    func setBindingDeniedPath() throws {
+        let monitor = FakeHotkeyMonitor()
+        monitor.nextOutcome = .permissionDenied
+        let defaults = Self.ephemeralDefaults()
+        let notifier = FakeNotifying()
+        let vm = HotkeySettingsViewModel(
+            monitor: monitor, defaults: defaults,
+            opener: FakeURLOpener(), notifier: notifier
+        )
+        let f5 = HotkeyBinding(fKeyNumber: 5)!
+
+        vm.setBinding(f5)
+
+        #expect(vm.binding == f5)        // intent preserved
+        #expect(vm.permissionDenied == true)
+        #expect(monitor.applyCalls == [f5])
+        #expect(notifier.permissionDeniedKinds == [.inputMonitoring])
+
+        let stored = defaults.data(forKey: HotkeySettingsViewModel.defaultsKey)
+        #expect(stored != nil)            // persisted despite denial
+    }
+
+    @Test("setBinding(nil) after F5 removes monitor, clears UserDefaults, clears banner")
+    func setBindingClearsAfterF5() {
+        let monitor = FakeHotkeyMonitor()
+        let defaults = Self.ephemeralDefaults()
+        let notifier = FakeNotifying()
+        let vm = HotkeySettingsViewModel(
+            monitor: monitor, defaults: defaults,
+            opener: FakeURLOpener(), notifier: notifier
+        )
+        let f5 = HotkeyBinding(fKeyNumber: 5)!
+        monitor.nextOutcome = .applied
+        vm.setBinding(f5)
+
+        vm.setBinding(nil)
+
+        #expect(vm.binding == nil)
+        #expect(vm.permissionDenied == false)
+        #expect(monitor.applyCalls == [f5, nil])
+        #expect(defaults.data(forKey: HotkeySettingsViewModel.defaultsKey) == nil)
+    }
+
+    @Test("Going from denied → re-pick that succeeds clears the banner")
+    func recoverFromDenialOnReSelect() {
+        let monitor = FakeHotkeyMonitor()
+        let defaults = Self.ephemeralDefaults()
+        let notifier = FakeNotifying()
+        let vm = HotkeySettingsViewModel(
+            monitor: monitor, defaults: defaults,
+            opener: FakeURLOpener(), notifier: notifier
+        )
+        let f5 = HotkeyBinding(fKeyNumber: 5)!
+        monitor.nextOutcome = .permissionDenied
+        vm.setBinding(f5)
+        #expect(vm.permissionDenied == true)
+
+        monitor.nextOutcome = .applied
+        vm.setBinding(f5)
+
+        #expect(vm.permissionDenied == false)
+    }
 }

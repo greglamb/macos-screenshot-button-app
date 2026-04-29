@@ -25,6 +25,28 @@ final class HotkeySettingsViewModel {
         self.binding = Self.load(from: defaults)
     }
 
+    func setBinding(_ new: HotkeyBinding?) {
+        persist(new)
+        binding = new
+
+        let outcome = monitor.apply(binding: new)
+        switch outcome {
+        case .applied:
+            permissionDenied = false
+        case .permissionDenied:
+            permissionDenied = true
+            notifier.postPermissionDenied(kind: .inputMonitoring)
+        }
+    }
+
+    private func persist(_ value: HotkeyBinding?) {
+        if let value, let data = try? JSONEncoder().encode(value) {
+            defaults.set(data, forKey: Self.defaultsKey)
+        } else {
+            defaults.removeObject(forKey: Self.defaultsKey)
+        }
+    }
+
     private static func load(from defaults: UserDefaults) -> HotkeyBinding? {
         guard let data = defaults.data(forKey: defaultsKey) else { return nil }
         return try? JSONDecoder().decode(HotkeyBinding.self, from: data)
