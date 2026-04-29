@@ -31,6 +31,9 @@ struct MenuView: View {
                 launchAtLoginEnabled = handler.setEnabled(newValue)
             }
         Divider()
+        SettingsLink { Text("Settings…") }
+            .keyboardShortcut(",", modifiers: .command)
+        Divider()
         Button("Quit ScreenshotButton") { NSApp.terminate(nil) }
             .keyboardShortcut("q", modifiers: .command)
         Divider()
