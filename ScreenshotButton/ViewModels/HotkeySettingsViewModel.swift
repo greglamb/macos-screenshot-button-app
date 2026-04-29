@@ -61,6 +61,10 @@ final class HotkeySettingsViewModel {
         }
     }
 
+    func openInputMonitoringSettings() {
+        opener.open(Notifier.inputMonitoringSettingsURL)
+    }
+
     private static func load(from defaults: UserDefaults) -> HotkeyBinding? {
         guard let data = defaults.data(forKey: defaultsKey) else { return nil }
         return try? JSONDecoder().decode(HotkeyBinding.self, from: data)

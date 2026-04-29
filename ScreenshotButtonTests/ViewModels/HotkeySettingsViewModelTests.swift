@@ -201,4 +201,20 @@ struct HotkeySettingsViewModelTests {
         #expect(notifier.permissionDeniedKinds == [.inputMonitoring])
         #expect(vm.binding == f5)   // intent preserved
     }
+
+    @Test("openInputMonitoringSettings opens the Input Monitoring privacy URL")
+    func openSettingsRoutesToCorrectURL() {
+        let opener = FakeURLOpener()
+        let vm = HotkeySettingsViewModel(
+            monitor: FakeHotkeyMonitor(),
+            defaults: Self.ephemeralDefaults(),
+            opener: opener,
+            notifier: FakeNotifying()
+        )
+
+        vm.openInputMonitoringSettings()
+
+        let expected = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!
+        #expect(opener.openedURLs == [expected])
+    }
 }
