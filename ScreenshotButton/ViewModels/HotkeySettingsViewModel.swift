@@ -47,6 +47,20 @@ final class HotkeySettingsViewModel {
         }
     }
 
+    /// Apply the persisted binding (if any) to the live monitor. Call once at app launch.
+    /// No-op when no binding is saved — avoids the Input Monitoring permission probe entirely.
+    func start() async {
+        guard let binding else { return }
+        let outcome = monitor.apply(binding: binding)
+        switch outcome {
+        case .applied:
+            permissionDenied = false
+        case .permissionDenied:
+            permissionDenied = true
+            notifier.postPermissionDenied(kind: .inputMonitoring)
+        }
+    }
+
     private static func load(from defaults: UserDefaults) -> HotkeyBinding? {
         guard let data = defaults.data(forKey: defaultsKey) else { return nil }
         return try? JSONDecoder().decode(HotkeyBinding.self, from: data)

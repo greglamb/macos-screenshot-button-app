@@ -142,4 +142,63 @@ struct HotkeySettingsViewModelTests {
 
         #expect(vm.permissionDenied == false)
     }
+
+    @Test("start() with no saved binding does nothing")
+    func startNoSavedBindingIsNoOp() async {
+        let monitor = FakeHotkeyMonitor()
+        let notifier = FakeNotifying()
+        let vm = HotkeySettingsViewModel(
+            monitor: monitor, defaults: Self.ephemeralDefaults(),
+            opener: FakeURLOpener(), notifier: notifier
+        )
+
+        await vm.start()
+
+        #expect(monitor.applyCalls.isEmpty)
+        #expect(notifier.permissionDeniedKinds.isEmpty)
+        #expect(vm.permissionDenied == false)
+    }
+
+    @Test("start() with saved binding and granted permission registers monitor")
+    func startWithGrantedAppliesBinding() async throws {
+        let monitor = FakeHotkeyMonitor()
+        monitor.nextOutcome = .applied
+        let defaults = Self.ephemeralDefaults()
+        let f5 = HotkeyBinding(fKeyNumber: 5)!
+        defaults.set(try JSONEncoder().encode(f5), forKey: HotkeySettingsViewModel.defaultsKey)
+
+        let notifier = FakeNotifying()
+        let vm = HotkeySettingsViewModel(
+            monitor: monitor, defaults: defaults,
+            opener: FakeURLOpener(), notifier: notifier
+        )
+
+        await vm.start()
+
+        #expect(monitor.applyCalls == [f5])
+        #expect(vm.permissionDenied == false)
+        #expect(notifier.permissionDeniedKinds.isEmpty)
+    }
+
+    @Test("start() with saved binding and denied permission posts banner")
+    func startWithDeniedPostsBanner() async throws {
+        let monitor = FakeHotkeyMonitor()
+        monitor.nextOutcome = .permissionDenied
+        let defaults = Self.ephemeralDefaults()
+        let f5 = HotkeyBinding(fKeyNumber: 5)!
+        defaults.set(try JSONEncoder().encode(f5), forKey: HotkeySettingsViewModel.defaultsKey)
+
+        let notifier = FakeNotifying()
+        let vm = HotkeySettingsViewModel(
+            monitor: monitor, defaults: defaults,
+            opener: FakeURLOpener(), notifier: notifier
+        )
+
+        await vm.start()
+
+        #expect(monitor.applyCalls == [f5])
+        #expect(vm.permissionDenied == true)
+        #expect(notifier.permissionDeniedKinds == [.inputMonitoring])
+        #expect(vm.binding == f5)   // intent preserved
+    }
 }
