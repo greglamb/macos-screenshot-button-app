@@ -15,9 +15,9 @@
 - After granting Screen Recording permission, macOS automatically restarts the app — expected platform behavior, not a bug.
 - Permission re-prompt UX is delivered via system notification; users with notifications disabled for ScreenshotButton will not see the prompt.
 - Real-device Screen Recording / TCC flow has not been smoke-tested in CI; manual verification is required pre-release.
-- **Live revocation of Input Monitoring permission is not detected.** macOS does not notify processes when a TCC permission is revoked while the app is running. The hotkey silently stops firing; the in-Settings banner only updates on the next binding change or app relaunch. A polling probe would be overkill for one hotkey.
+- **Live revocation of Accessibility permission is not detected.** macOS does not notify processes when a TCC permission is revoked while the app is running. The hotkey silently stops firing; the in-Settings banner only updates on the next binding change or app relaunch. A polling probe would be overkill for one hotkey.
 - **Cross-app hotkey collisions are not detected.** `NSEvent.addGlobalMonitorForEvents` is observe-only — if another app has bound the same key globally, both fire on the same keystroke. Documented constraint of the chosen API; would require Carbon `RegisterEventHotKey` to detect.
-- **App Sandbox not adopted.** If sandbox is later required (e.g. for App Store distribution), the new hotkey feature will need the `com.apple.security.device.input-monitoring` entitlement and a corresponding provisioning profile change.
+- **App Sandbox not adopted.** If sandbox is later required (e.g. for App Store distribution), the hotkey feature relies on `AXIsProcessTrustedWithOptions` (Accessibility TCC); sandboxed apps cannot add themselves to the Accessibility list programmatically and would need an alternate approach.
 
 ## Follow-ups discovered during implementation
 

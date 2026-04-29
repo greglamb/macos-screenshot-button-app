@@ -6,11 +6,14 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 ### Added
 
-- **Configurable global hotkey for Area-to-Clipboard.** A new "Settings…" entry in the menu-bar dropdown opens a Settings window with an F1–F19 picker. Pressing the chosen function key from any app starts the area-selection overlay and copies the result to the clipboard. The first time you select a key, macOS prompts for *Input Monitoring* permission in System Settings → Privacy & Security. v1 supports plain F-keys only (no modifiers). On Macs that map F1–F12 to media keys, hold **Fn** or enable *"Use F-keys as standard function keys"* in System Settings → Keyboard.
+- **Configurable global hotkey for Area-to-Clipboard.** A new "Settings…" entry in the menu-bar dropdown opens a Settings window with an F1–F19 picker. Pressing the chosen function key from any app starts the area-selection overlay and copies the result to the clipboard. The first time you select a key, macOS prompts for *Accessibility* permission in System Settings → Privacy & Security. v1 supports plain F-keys (with or without the Fn modifier) — Cmd/Opt/Ctrl/Shift still count as modifiers and are rejected. On Macs that map F1–F12 to media keys, hold **Fn** or enable *"Use F-keys as standard function keys"* in System Settings → Keyboard.
 
 ### Changed
 
 ### Fixed
+
+- Hotkey now correctly requests *Accessibility* permission (via `AXIsProcessTrustedWithOptions`) instead of *Input Monitoring* (IOHID). `NSEvent.addGlobalMonitorForEvents` for keyboard events requires Accessibility per Apple's documentation; Input Monitoring produced no events even when granted.
+- **Fn+F-key combinations now work.** Pressing Fn+F12 on a default-config Apple keyboard generates a `keyDown` with the `.function` modifier flag. The previous strict "no modifiers" check rejected this; the fix only rejects intentional modifiers (Cmd, Opt, Ctrl, Shift).
 
 ### Removed
 
