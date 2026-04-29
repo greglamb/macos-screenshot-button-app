@@ -6,6 +6,7 @@ struct MenuView: View {
     let notifier: any Notifying
     let onCaptureRequested: (CaptureMode, SinkKind) -> Void
     @State private var launchAtLoginEnabled: Bool
+    @Environment(\.openSettings) private var openSettings
 
     init(
         launchAtLogin: LaunchAtLogin,
@@ -31,18 +32,20 @@ struct MenuView: View {
                 launchAtLoginEnabled = handler.setEnabled(newValue)
             }
         Divider()
-        // SettingsLink opens the Settings scene window using SwiftUI's
-        // blessed plumbing, but for LSUIElement=true apps (.accessory
-        // activation policy) it doesn't activate the app, so the window
-        // opens behind other apps. Pair with simultaneousGesture to
-        // activate on tap. Pure NSApp.sendAction(showSettingsWindow:)
-        // does not reach the SwiftUI Settings handler from a MenuBarExtra
-        // menu — only SettingsLink's internal mechanism creates the window.
-        SettingsLink { Text("Settings…") }
-            .simultaneousGesture(TapGesture().onEnded {
-                NSApp.activate(ignoringOtherApps: true)
-            })
-            .keyboardShortcut(",", modifiers: .command)
+        // Use a Button + @Environment(\.openSettings) rather than
+        // SettingsLink. SettingsLink's tap doesn't expose a place for our
+        // own action, and simultaneousGesture does not reliably fire
+        // inside a MenuBarExtra menu — the gesture closure is never
+        // called. Button.action runs deterministically. For
+        // LSUIElement=true apps, briefly switch to .regular activation so
+        // the Settings window can surface above other apps; revert to
+        // .accessory on window close (observer in ScreenshotButtonApp).
+        Button("Settings…") {
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
+            openSettings()
+        }
+        .keyboardShortcut(",", modifiers: .command)
         Divider()
         Button("Quit ScreenshotButton") { NSApp.terminate(nil) }
             .keyboardShortcut("q", modifiers: .command)

@@ -10,11 +10,13 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 ### Changed
 
+- Menu-bar icon now switches to a `viewfinder` glyph while a capture is in progress (overlay open or capture being processed), reverting to the resting `camera.metering.center.weighted` glyph when idle.
+
 ### Fixed
 
 - Hotkey now correctly requests *Accessibility* permission (via `AXIsProcessTrustedWithOptions`) instead of *Input Monitoring* (IOHID). `NSEvent.addGlobalMonitorForEvents` for keyboard events requires Accessibility per Apple's documentation; Input Monitoring produced no events even when granted.
 - **Fn+F-key combinations now work.** Pressing Fn+F12 on a default-config Apple keyboard generates a `keyDown` with the `.function` modifier flag. The previous strict "no modifiers" check rejected this; the fix only rejects intentional modifiers (Cmd, Opt, Ctrl, Shift).
-- **"Settings…" menu entry now actually opens the Settings window.** Previously, `SettingsLink` from a `MenuBarExtra` opened the window but didn't activate the app, so for `LSUIElement = true` (no Dock icon) the window stayed buried behind other apps and the user perceived "nothing happened." `SettingsLink` is now paired with a `simultaneousGesture` that activates the app explicitly on tap.
+- **"Settings…" menu entry now actually opens the Settings window above other apps.** For `LSUIElement = true` apps (no Dock icon), `SettingsLink` opens the window but doesn't activate the app — and `.simultaneousGesture` does not reliably fire inside a `MenuBarExtra` menu (verified via diagnostic logging — the gesture closure never ran). The fix replaces `SettingsLink` with a `Button` that uses `@Environment(\.openSettings)` and briefly switches the app's activation policy to `.regular` so the window can surface; the policy reverts to `.accessory` on `NSWindow.willCloseNotification` for the Settings window. The Dock icon is briefly visible while Settings is open.
 
 ### Removed
 
