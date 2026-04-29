@@ -96,7 +96,7 @@ struct HotkeySettingsViewModelTests {
         #expect(vm.binding == f5)        // intent preserved
         #expect(vm.permissionDenied == true)
         #expect(monitor.applyCalls == [f5])
-        #expect(notifier.permissionDeniedKinds == [.inputMonitoring])
+        #expect(notifier.permissionDeniedKinds == [.accessibility])
 
         let stored = defaults.data(forKey: HotkeySettingsViewModel.defaultsKey)
         #expect(stored != nil)            // persisted despite denial
@@ -198,11 +198,11 @@ struct HotkeySettingsViewModelTests {
 
         #expect(monitor.applyCalls == [f5])
         #expect(vm.permissionDenied == true)
-        #expect(notifier.permissionDeniedKinds == [.inputMonitoring])
+        #expect(notifier.permissionDeniedKinds == [.accessibility])
         #expect(vm.binding == f5)   // intent preserved
     }
 
-    @Test("openInputMonitoringSettings opens the Input Monitoring privacy URL")
+    @Test("openAccessibilitySettings opens the Accessibility privacy URL")
     func openSettingsRoutesToCorrectURL() {
         let opener = FakeURLOpener()
         let vm = HotkeySettingsViewModel(
@@ -212,9 +212,9 @@ struct HotkeySettingsViewModelTests {
             notifier: FakeNotifying()
         )
 
-        vm.openInputMonitoringSettings()
+        vm.openAccessibilitySettings()
 
-        let expected = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!
+        let expected = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
         #expect(opener.openedURLs == [expected])
     }
 }

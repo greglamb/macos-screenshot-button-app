@@ -1,14 +1,26 @@
 import AppKit
-import IOKit.hid
+import ApplicationServices
 import os
 
 private let hotkeyLog = Logger(subsystem: "dev.greglamb.ScreenshotButton", category: "hotkey")
 
+/// Returns true when Accessibility is granted, triggering the system prompt on
+/// the first call. The string `"AXTrustedCheckOptionPrompt"` is the stable
+/// value of `kAXTrustedCheckOptionPrompt` (verified via AXUIElement.h); using
+/// the literal avoids touching the C global, which Swift 6 strict concurrency
+/// treats as shared mutable state because it is typed as `var CFStringRef` in
+/// the C header.
+private nonisolated func axIsTrustedWithPrompt() -> Bool {
+    let options: CFDictionary = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
+    return AXIsProcessTrustedWithOptions(options)
+}
+
 @MainActor
 final class HotkeyMonitor: HotkeyMonitoring {
-    // nonisolated(unsafe): written only on @MainActor via apply(binding:);
-    // read only in deinit for cleanup. NSEvent.removeMonitor is safe to call
-    // from any context, so relaxing isolation here is correct.
+    // nonisolated(unsafe): mutated only on @MainActor (in apply(binding:));
+    // accessed outside the actor only from deinit, where NSEvent.removeMonitor
+    // is safe to call from any context. The MainActor reads inside apply are
+    // not the reason for the escape hatch.
     nonisolated(unsafe) private var token: Any?
     private var currentBinding: HotkeyBinding?
     private let onFire: @MainActor () -> Void
@@ -34,18 +46,17 @@ final class HotkeyMonitor: HotkeyMonitoring {
             return .applied
         }
 
-        // Probe Input Monitoring permission. Prompt on first call.
-        switch IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) {
-        case kIOHIDAccessTypeGranted:
-            break
-        case kIOHIDAccessTypeUnknown:
-            // Synchronous prompt; returns true on grant.
-            if !IOHIDRequestAccess(kIOHIDRequestTypeListenEvent) {
-                hotkeyLog.info("Input Monitoring denied (post-prompt)")
-                return .permissionDenied
-            }
-        default:
-            hotkeyLog.info("Input Monitoring denied")
+        // Probe Accessibility permission. NSEvent.addGlobalMonitorForEvents
+        // for keyboard events requires Accessibility per Apple's docs:
+        // "Key-related events may only be monitored if accessibility is
+        // enabled or if your application is trusted for accessibility access."
+        // Setting kAXTrustedCheckOptionPrompt = true shows the system prompt
+        // (non-blocking) on first call when the app is not yet trusted; the
+        // user must then add the app via System Settings → Privacy &
+        // Security → Accessibility. Subsequent apply() calls succeed once
+        // granted.
+        guard axIsTrustedWithPrompt() else {
+            hotkeyLog.info("Accessibility denied")
             return .permissionDenied
         }
 
@@ -53,11 +64,18 @@ final class HotkeyMonitor: HotkeyMonitoring {
         let label = binding.label
         token = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return }
-            // Strict no-modifiers match (v1 spec).
-            let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            guard event.keyCode == keyCode, mods.isEmpty else { return }
-            // The closure is delivered on the main thread by NSEvent for global monitors,
-            // but @Sendable closure capture rules mean we explicitly hop:
+            // Reject only "real" user modifiers (Cmd, Opt, Ctrl, Shift).
+            // Fn is a keyboard-layer shift on default Apple keyboards
+            // (Fn+F12 is how the user produces F12 keyDown when F-keys are
+            // mapped to media); CapsLock, NumericPad, Help are not
+            // user-meaningful modifier intents for hotkeys. Allow all
+            // through.
+            let bannedMods: NSEvent.ModifierFlags = [.command, .option, .control, .shift]
+            guard event.keyCode == keyCode,
+                  event.modifierFlags.intersection(bannedMods).isEmpty else { return }
+            // The closure is invoked off-main from NSEvent's machinery;
+            // hop to @MainActor before calling onFire (Swift 6 strict
+            // concurrency).
             Task { @MainActor [weak self] in
                 hotkeyLog.info("hotkey fired")
                 self?.onFire()

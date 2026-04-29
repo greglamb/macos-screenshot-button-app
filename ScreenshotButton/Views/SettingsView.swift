@@ -18,10 +18,10 @@ struct SettingsView: View {
                 if viewModel.permissionDenied {
                     LabeledContent {
                         Button("Open Settings") {
-                            viewModel.openInputMonitoringSettings()
+                            viewModel.openAccessibilitySettings()
                         }
                     } label: {
-                        Text("Input Monitoring is required for global hotkeys.")
+                        Text("Accessibility is required for global hotkeys.")
                             .foregroundStyle(.secondary)
                     }
                 }

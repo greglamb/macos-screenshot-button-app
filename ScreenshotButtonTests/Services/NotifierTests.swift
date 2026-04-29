@@ -17,14 +17,14 @@ struct NotifierTests {
         #expect(opener.openedURLs == [expected])
     }
 
-    @Test("Open Settings action routes to the Input Monitoring privacy URL")
-    func inputMonitoringActionRoutes() async {
+    @Test("Open Settings action routes to the Accessibility privacy URL")
+    func accessibilityActionRoutes() async {
         let opener = FakeURLOpener()
         let notifier = Notifier(opener: opener)
 
-        await notifier.handle(actionIdentifier: Notifier.openInputMonitoringSettingsAction)
+        await notifier.handle(actionIdentifier: Notifier.openAccessibilitySettingsAction)
 
-        let expected = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!
+        let expected = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
         #expect(opener.openedURLs == [expected])
     }
 

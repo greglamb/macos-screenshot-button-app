@@ -35,7 +35,7 @@ final class HotkeySettingsViewModel {
             permissionDenied = false
         case .permissionDenied:
             permissionDenied = true
-            notifier.postPermissionDenied(kind: .inputMonitoring)
+            notifier.postPermissionDenied(kind: .accessibility)
         }
     }
 
@@ -48,7 +48,7 @@ final class HotkeySettingsViewModel {
     }
 
     /// Apply the persisted binding (if any) to the live monitor. Call once at app launch.
-    /// No-op when no binding is saved — avoids the Input Monitoring permission probe entirely.
+    /// No-op when no binding is saved — avoids the Accessibility permission probe entirely.
     func start() async {
         guard let binding else { return }
         let outcome = monitor.apply(binding: binding)
@@ -57,12 +57,12 @@ final class HotkeySettingsViewModel {
             permissionDenied = false
         case .permissionDenied:
             permissionDenied = true
-            notifier.postPermissionDenied(kind: .inputMonitoring)
+            notifier.postPermissionDenied(kind: .accessibility)
         }
     }
 
-    func openInputMonitoringSettings() {
-        opener.open(Notifier.inputMonitoringSettingsURL)
+    func openAccessibilitySettings() {
+        opener.open(Notifier.accessibilitySettingsURL)
     }
 
     private static func load(from defaults: UserDefaults) -> HotkeyBinding? {

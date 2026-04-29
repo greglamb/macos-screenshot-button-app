@@ -2,7 +2,7 @@ import Foundation
 
 enum PermissionKind: Sendable, Equatable {
     case screenRecording
-    case inputMonitoring
+    case accessibility
 }
 
 @MainActor

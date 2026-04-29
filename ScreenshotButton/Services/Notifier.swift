@@ -7,16 +7,16 @@ final class Notifier: NSObject, Notifying {
     private let opener: any URLOpening
 
     nonisolated static let openScreenRecordingSettingsAction = "OPEN_SCREEN_RECORDING_SETTINGS"
-    nonisolated static let openInputMonitoringSettingsAction = "OPEN_INPUT_MONITORING_SETTINGS"
+    nonisolated static let openAccessibilitySettingsAction = "OPEN_ACCESSIBILITY_SETTINGS"
     nonisolated static let screenRecordingCategory = "PERMISSION_DENIED_SCREEN_RECORDING"
-    nonisolated static let inputMonitoringCategory = "PERMISSION_DENIED_INPUT_MONITORING"
+    nonisolated static let accessibilityCategory = "PERMISSION_DENIED_ACCESSIBILITY"
     nonisolated static let plainCategory = "PLAIN"
 
     static let screenRecordingSettingsURL = URL(
         string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
     )!
-    static let inputMonitoringSettingsURL = URL(
-        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"
+    static let accessibilitySettingsURL = URL(
+        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
     )!
 
     init(opener: any URLOpening = SystemURLOpener()) {
@@ -27,8 +27,8 @@ final class Notifier: NSObject, Notifying {
             title: "Open Settings",
             options: [.foreground]
         )
-        let openInputMonitoring = UNNotificationAction(
-            identifier: Self.openInputMonitoringSettingsAction,
+        let openAccessibility = UNNotificationAction(
+            identifier: Self.openAccessibilitySettingsAction,
             title: "Open Settings",
             options: [.foreground]
         )
@@ -38,9 +38,9 @@ final class Notifier: NSObject, Notifying {
             intentIdentifiers: [],
             options: []
         )
-        let inputMonitoring = UNNotificationCategory(
-            identifier: Self.inputMonitoringCategory,
-            actions: [openInputMonitoring],
+        let accessibility = UNNotificationCategory(
+            identifier: Self.accessibilityCategory,
+            actions: [openAccessibility],
             intentIdentifiers: [],
             options: []
         )
@@ -51,7 +51,7 @@ final class Notifier: NSObject, Notifying {
             options: []
         )
         UNUserNotificationCenter.current().setNotificationCategories(
-            [screenRecording, inputMonitoring, plain]
+            [screenRecording, accessibility, plain]
         )
         UNUserNotificationCenter.current().delegate = self
     }
@@ -77,10 +77,10 @@ final class Notifier: NSObject, Notifying {
                 content.title = "Screen Recording permission required"
                 content.body = "ScreenshotButton needs Screen Recording access in System Settings to capture windows and regions."
                 content.categoryIdentifier = Self.screenRecordingCategory
-            case .inputMonitoring:
-                content.title = "Input Monitoring permission required"
-                content.body = "ScreenshotButton needs Input Monitoring access in System Settings to receive global hotkeys."
-                content.categoryIdentifier = Self.inputMonitoringCategory
+            case .accessibility:
+                content.title = "Accessibility permission required"
+                content.body = "ScreenshotButton needs Accessibility access in System Settings to receive global hotkeys."
+                content.categoryIdentifier = Self.accessibilityCategory
             }
             let req = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
             try? await UNUserNotificationCenter.current().add(req)
@@ -98,8 +98,8 @@ final class Notifier: NSObject, Notifying {
         switch actionIdentifier {
         case Self.openScreenRecordingSettingsAction:
             opener.open(Self.screenRecordingSettingsURL)
-        case Self.openInputMonitoringSettingsAction:
-            opener.open(Self.inputMonitoringSettingsURL)
+        case Self.openAccessibilitySettingsAction:
+            opener.open(Self.accessibilitySettingsURL)
         default:
             break
         }
