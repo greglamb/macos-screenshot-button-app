@@ -1,8 +1,20 @@
 # Area-to-Clipboard Global Hotkey — Design
 
 **Date:** 2026-04-28
-**Status:** Approved for planning
+**Status:** Approved for planning · **Implemented with corrections — see Postscript**
 **Scope:** v1 of the deferred "Global hotkeys" TODO entry.
+
+---
+
+## Postscript — corrections from manual verification (2026-04-29)
+
+This spec was followed during implementation, but **manual verification (Task 13 of the plan) revealed three bugs** the unit-test suite couldn't catch:
+
+1. **Wrong TCC bucket.** This spec specifies `IOHIDCheckAccess` / `IOHIDRequestAccess` for *Input Monitoring*. That is **incorrect** for `NSEvent.addGlobalMonitorForEvents(matching: .keyDown)`. Apple's documentation states: *"Key-related events may only be monitored if accessibility is enabled or if your application is trusted for accessibility access."* The shipped `HotkeyMonitor.swift` uses `AXIsProcessTrustedWithOptions` (Accessibility) instead. The spec body below referencing "Input Monitoring" is preserved as a historical record of the original (wrong) design — refer to `HotkeyMonitor.swift` and `Notifier.swift` for actual behavior.
+2. **`SettingsLink` doesn't activate `LSUIElement` apps.** The `Settings { }` scene window opens, but the app's `.accessory` activation policy means the window stays behind other apps. `MenuView.swift` now pairs `SettingsLink` with `.simultaneousGesture(TapGesture().onEnded { NSApp.activate(...) })`.
+3. **Strict "no modifiers" check rejects `Fn`.** `event.modifierFlags & .deviceIndependentFlagsMask` includes `.function`. Pressing `Fn+F12` on default Apple keyboards (the user-friendly way to invoke F-keys when F1–F12 are mapped to media) was rejected by the original `mods.isEmpty` check. The shipped check only rejects `[.command, .option, .control, .shift]`.
+
+The implementation in commits 3ad9f73 (TCC + modifier) and 50760fe (SettingsLink) supersedes the corresponding spec sections.
 
 ---
 

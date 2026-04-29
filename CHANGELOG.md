@@ -14,6 +14,7 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 - Hotkey now correctly requests *Accessibility* permission (via `AXIsProcessTrustedWithOptions`) instead of *Input Monitoring* (IOHID). `NSEvent.addGlobalMonitorForEvents` for keyboard events requires Accessibility per Apple's documentation; Input Monitoring produced no events even when granted.
 - **Fn+F-key combinations now work.** Pressing Fn+F12 on a default-config Apple keyboard generates a `keyDown` with the `.function` modifier flag. The previous strict "no modifiers" check rejected this; the fix only rejects intentional modifiers (Cmd, Opt, Ctrl, Shift).
+- **"Settings…" menu entry now actually opens the Settings window.** Previously, `SettingsLink` from a `MenuBarExtra` opened the window but didn't activate the app, so for `LSUIElement = true` (no Dock icon) the window stayed buried behind other apps and the user perceived "nothing happened." `SettingsLink` is now paired with a `simultaneousGesture` that activates the app explicitly on tap.
 
 ### Removed
 
