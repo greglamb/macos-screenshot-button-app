@@ -1,6 +1,6 @@
 cask "screenshotbutton" do
-  version "0.0.6"
-  sha256 "88c0d2c650c4f26de53435209fca332eb0b99db7aa21b71f547ff58cafae27b8"
+  version "0.0.7"
+  sha256 "d558b9e62d4117c5dc383c086107d1bf332b423277fedf2a00ffc772a3e17e4d"
 
   url "https://github.com/greglamb/macos-screenshot-button-app/releases/download/v#{version}/ScreenshotButton-#{version}.dmg"
   name "ScreenshotButton"
