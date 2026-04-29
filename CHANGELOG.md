@@ -6,6 +6,8 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 ### Added
 
+- **Configurable global hotkey for Area-to-Clipboard.** A new "Settings…" entry in the menu-bar dropdown opens a Settings window with an F1–F19 picker. Pressing the chosen function key from any app starts the area-selection overlay and copies the result to the clipboard. The first time you select a key, macOS prompts for *Input Monitoring* permission in System Settings → Privacy & Security. v1 supports plain F-keys only (no modifiers). On Macs that map F1–F12 to media keys, hold **Fn** or enable *"Use F-keys as standard function keys"* in System Settings → Keyboard.
+
 ### Changed
 
 ### Fixed

@@ -3,6 +3,7 @@
 ## Deferred from v1
 
 - **Global hotkeys** for the four capture modes — scope-cut to keep v1 menu-only. No hotkey recorder UI, no collision-detection with macOS's built-in `Cmd-Shift-3/4/5`. (First slice — Area-to-Clipboard only — designed 2026-04-28: `docs/superpowers/specs/2026-04-28-area-to-clipboard-hotkey-design.md`.)
+- **Global hotkeys for the remaining three modes** (Window-to-File, Area-to-File, Window-to-Clipboard) — A→C ships in v0.0.8; persistence is dictionary-typed so adding rows to `SettingsView` is a UI-only change.
 - **Cursor inclusion** option (currently always off; matches macOS default).
 - **Sparkle auto-updates** — brew handles updates for now.
 - **Configurable save location** — v1 writes to `NSTemporaryDirectory()` and hands the file to Preview; user saves via Preview's Save dialog.
@@ -14,6 +15,9 @@
 - After granting Screen Recording permission, macOS automatically restarts the app — expected platform behavior, not a bug.
 - Permission re-prompt UX is delivered via system notification; users with notifications disabled for ScreenshotButton will not see the prompt.
 - Real-device Screen Recording / TCC flow has not been smoke-tested in CI; manual verification is required pre-release.
+- **Live revocation of Input Monitoring permission is not detected.** macOS does not notify processes when a TCC permission is revoked while the app is running. The hotkey silently stops firing; the in-Settings banner only updates on the next binding change or app relaunch. A polling probe would be overkill for one hotkey.
+- **Cross-app hotkey collisions are not detected.** `NSEvent.addGlobalMonitorForEvents` is observe-only — if another app has bound the same key globally, both fire on the same keystroke. Documented constraint of the chosen API; would require Carbon `RegisterEventHotKey` to detect.
+- **App Sandbox not adopted.** If sandbox is later required (e.g. for App Store distribution), the new hotkey feature will need the `com.apple.security.device.input-monitoring` entitlement and a corresponding provisioning profile change.
 
 ## Follow-ups discovered during implementation
 
@@ -71,6 +75,8 @@ Full history preserved in git on the `fix/capture-bugs` branch (commits from 202
 - **Re-entry handling in `OverlayManager.begin`** — currently a silent no-op when a session is already in flight. Consider dismissing the in-flight session first, or surfacing a console log.
 - **Tighter window-picker filtering** — the current `SCShareableContent` filter excludes off-screen/minimized/untitled windows, but still admits sub-pixel windows (tooltips, invisible helpers) and non-normal layers (menu bar, floating panels). If users report picking chrome, add `frame.width/height >= 20` and `windowLayer == 0`.
 - **`Casks/screenshotbutton.rb` `zap trash:` audit (resolved 2026-04-14):** Confirmed `LaunchAtLogin.setEnabled` writes the `launchAtLogin` flag via `UserDefaults.standard`, which lands in `~/Library/Preferences/dev.greglamb.ScreenshotButton.plist`. The existing `zap trash:` entry is correct; no change needed.
+- **`SettingsView` accessibility label on "Open Settings" button** — flagged in Task 10 code review (2026-04-28). The Picker has `.accessibilityLabel("Area-to-Clipboard hotkey")`; the banner's `Button("Open Settings")` should also get `.accessibilityLabel("Open Input Monitoring settings")` so VoiceOver users encountering the row out of context disambiguate which "Settings" is being opened.
+- **`SettingsView` fixed-frame vs. Dynamic Type** — flagged in Task 10 code review (2026-04-28). The `.frame(width: 480, height: 260)` is the spec'd choice for v1 and matches the macOS preferences pattern, but at very large Dynamic Type / accessibility text sizes the long Fn-tip text could clip. Re-evaluate after Task 13's manual verification on real hardware. If clipping appears, swap to `.frame(minWidth: 480, minHeight: 260)`.
 
 ## Rejected approaches
 

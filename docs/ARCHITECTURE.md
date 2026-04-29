@@ -29,10 +29,10 @@ ScreenshotButton/
 │                      HitTesting, ScreenCoordinates
 ├── Services/          protocol-wrapped Apple APIs (paired files: FooProtocol.swift +
 │                      SystemFoo.swift): WindowEnumerator, Capturer, FileSink, ClipboardSink,
-│                      LaunchAtLogin, TempCleanup, Notifier, PNGEncoder
+│                      LaunchAtLogin, TempCleanup, Notifier, PNGEncoder, HotkeyMonitor
 ├── Session/           CaptureSession (state machine), CaptureController (coordinator)
-├── Views/             SwiftUI views + AppKit view subclasses: MenuView, OverlayView, OverlayPanel
-├── ViewModels/        @Observable coordinators + handlers: OverlayManager, AutolaunchToggleHandler
+├── Views/             SwiftUI views + AppKit view subclasses: MenuView, OverlayView, OverlayPanel, SettingsView
+├── ViewModels/        @Observable coordinators + handlers: OverlayManager, AutolaunchToggleHandler, HotkeySettingsViewModel
 ├── Info.plist         generated from Project.yml
 └── ScreenshotButtonApp.swift   @main entry point
 
@@ -68,6 +68,12 @@ Menu click  →  OverlayManager.begin(mode:sink:)
                  .toFile        → PNGEncoder → FileWriter → PreviewOpener (NSWorkspace)
                  .toClipboard   → NSImage → PasteboardWriting
             →  CaptureSession.finish() → .idle
+
+Hotkey press (F-key alone, no modifiers; delivered via global event monitor)
+            →  NSEvent global monitor fires (HotkeyMonitor)
+            →  onFire callback (configured in ScreenshotButtonApp.init)
+            →  OverlayManager.begin(mode: .area, sink: .toClipboard)
+            →  (same downstream flow as menu click)
 ```
 
 ## Design and plan documents
