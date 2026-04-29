@@ -6,6 +6,16 @@ All notable user-facing changes to ScreenshotButton are documented here.
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [v0.0.8] - 2026-04-29
+
+### Added
+
 - **Configurable global hotkey for Area-to-Clipboard.** A new "Settings…" entry in the menu-bar dropdown opens a Settings window with an F1–F19 picker. Pressing the chosen function key from any app starts the area-selection overlay and copies the result to the clipboard. The first time you select a key, macOS prompts for *Accessibility* permission in System Settings → Privacy & Security. v1 supports plain F-keys (with or without the Fn modifier) — Cmd/Opt/Ctrl/Shift still count as modifiers and are rejected. On Macs that map F1–F12 to media keys, hold **Fn** or enable *"Use F-keys as standard function keys"* in System Settings → Keyboard.
 
 ### Changed
@@ -17,8 +27,6 @@ All notable user-facing changes to ScreenshotButton are documented here.
 - Hotkey now correctly requests *Accessibility* permission (via `AXIsProcessTrustedWithOptions`) instead of *Input Monitoring* (IOHID). `NSEvent.addGlobalMonitorForEvents` for keyboard events requires Accessibility per Apple's documentation; Input Monitoring produced no events even when granted.
 - **Fn+F-key combinations now work.** Pressing Fn+F12 on a default-config Apple keyboard generates a `keyDown` with the `.function` modifier flag. The previous strict "no modifiers" check rejected this; the fix only rejects intentional modifiers (Cmd, Opt, Ctrl, Shift).
 - **"Settings…" menu entry now actually opens the Settings window above other apps.** For `LSUIElement = true` apps (no Dock icon), `SettingsLink` opens the window but doesn't activate the app — and `.simultaneousGesture` does not reliably fire inside a `MenuBarExtra` menu (verified via diagnostic logging — the gesture closure never ran). The fix replaces `SettingsLink` with a `Button` that uses `@Environment(\.openSettings)` and briefly switches the app's activation policy to `.regular` so the window can surface; the policy reverts to `.accessory` on `NSWindow.willCloseNotification` for the Settings window. The Dock icon is briefly visible while Settings is open.
-
-### Removed
 
 ## [v0.0.7] - 2026-04-20
 
