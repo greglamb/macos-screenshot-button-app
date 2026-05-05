@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   security:
-    uses: greglamb/gha-workflows/.github/workflows/lib-security-review.yml@v0.2605.510
+    uses: greglamb/gha-workflows/.github/workflows/lib-security-review.yml@v0.2605.511
     permissions:
       contents: read
       security-events: write
