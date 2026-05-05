@@ -1,5 +1,31 @@
 title = "Gitleaks config"
 
-[allowlist]
-  description = "Allowlisted patterns"
-  paths = []
+# Inherit gitleaks' built-in default rules so we don't have to redeclare them.
+[extend]
+useDefault = true
+
+# This script scans `gitleaks git` (history) rather than `gitleaks dir`
+# (filesystem walk), so anything in .gitignore is automatically skipped —
+# you don't need to add node_modules/, dist/, .venv/, etc. here.
+#
+# Add allowlist entries for things that ARE in git history but should be
+# ignored: committed test fixtures, lockfile hashes that trip generic
+# rules, audited historical commits, etc. Each [[allowlists]] entry
+# must include at least one non-empty check (commits, paths, regexes,
+# or stopwords) or gitleaks will refuse to load the config.
+#
+# [[allowlists]]
+#   description = "Skip committed test fixtures"
+#   paths = ['^tests/fixtures/']
+#
+# [[allowlists]]
+#   description = "Lockfile hashes that look like API keys"
+#   paths = ['(?:package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$']
+#
+# [[allowlists]]
+#   description = "Known false positives in this repo"
+#   regexes = ['EXAMPLE_API_KEY_NOT_REAL']
+#
+# [[allowlists]]
+#   description = "Pre-cleanup history audited and accepted"
+#   commits = ['abc123def456']
